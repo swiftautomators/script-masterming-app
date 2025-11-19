@@ -1,7 +1,8 @@
 
 import { GoogleGenAI, Type } from "@google/genai";
-import { SYSTEM_INSTRUCTION, RESEARCH_PROMPT_TEMPLATE, DRAFT_PROMPT_TEMPLATE, FINALIZATION_PROMPT_TEMPLATE } from "../constants";
+import { SYSTEM_INSTRUCTION, RESEARCH_PROMPT_TEMPLATE, DRAFT_PROMPT_TEMPLATE, FINALIZATION_PROMPT_TEMPLATE, VIRAL_REPURPOSE_PROMPT, REFINE_DRAFT_PROMPT_TEMPLATE } from "../constants";
 import { ResearchResult, ScriptVariation, FinalScript } from "../types";
+import { retrieveContext } from "./knowledgeBase";
 
 // Initialize Gemini Client
 const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
@@ -77,13 +78,34 @@ export const researchProduct = async (productName: string, productDesc: string, 
 
 /**
  * Step 2: Generate Draft Scripts using Gemini 3 Pro (Thinking Mode)
+ * WITH RAG KNOWLEDGE BASE INTEGRATION
  */
 export const generateDrafts = async (productName: string, length: string, researchSummary: string, isFaceless: boolean): Promise<ScriptVariation[]> => {
   try {
+    // RAG STEP: Retrieve relevant context from knowledge base
+    const context = retrieveContext(productName, researchSummary);
+    
+    // Format context for the prompt
+    const ragContextString = `
+    DETECTED CATEGORY: ${context.category.toUpperCase()}
+    
+    VOICE PATTERNS TO USE:
+    ${context.voicePatterns.map(v => `- "${v.pattern}" (${v.usageContext})`).join('\n')}
+    
+    PROVEN HOOKS TO ADAPT:
+    ${context.hooks.map(h => `- "${h.text}" (Type: ${h.type})`).join('\n')}
+    
+    COMPETITOR INSIGHTS:
+    ${context.insights.map(i => `- ${i.insight}`).join('\n')}
+    
+    SIMILAR VIRAL SCRIPTS (FOR STRUCTURE REFERENCE):
+    ${context.viralScripts.map(s => `- [${s.productName}]: ${s.scriptText.substring(0, 100)}...`).join('\n')}
+    `;
+
     // Use Gemini 3 Pro for creative writing and "Thinking"
     const response = await ai.models.generateContent({
       model: 'gemini-3-pro-preview',
-      contents: DRAFT_PROMPT_TEMPLATE(productName, length, researchSummary, isFaceless),
+      contents: DRAFT_PROMPT_TEMPLATE(productName, length, researchSummary, isFaceless, ragContextString),
       config: {
         systemInstruction: SYSTEM_INSTRUCTION,
         thinkingConfig: { thinkingBudget: 32768 }, // Deep thinking for creative structure
@@ -136,6 +158,53 @@ export const generateDrafts = async (productName: string, length: string, resear
 };
 
 /**
+ * Analyze a Viral Script and generate iterations
+ */
+export const repurposeViralScript = async (originalScript: string): Promise<{ analysis: string, scripts: ScriptVariation[] }> => {
+  try {
+    const response = await ai.models.generateContent({
+      model: 'gemini-3-pro-preview',
+      contents: VIRAL_REPURPOSE_PROMPT(originalScript),
+      config: {
+        systemInstruction: SYSTEM_INSTRUCTION,
+        thinkingConfig: { thinkingBudget: 32768 },
+        responseMimeType: "application/json",
+        responseSchema: {
+            type: Type.OBJECT,
+            properties: {
+                analysis: { type: Type.STRING },
+                scripts: {
+                    type: Type.ARRAY,
+                    items: {
+                        type: Type.OBJECT,
+                        properties: {
+                            id: { type: Type.INTEGER },
+                            title: { type: Type.STRING },
+                            framework: { type: Type.STRING },
+                            hookStrategy: { type: Type.STRING },
+                            content: { type: Type.STRING }
+                        },
+                        required: ["id", "title", "framework", "hookStrategy", "content"]
+                    }
+                }
+            },
+            required: ["analysis", "scripts"]
+        }
+      }
+    });
+
+    const jsonText = response.text;
+    if (!jsonText) throw new Error("Empty response from viral analysis");
+
+    return parseAIJSON<{ analysis: string, scripts: ScriptVariation[] }>(jsonText);
+
+  } catch (error) {
+    console.error("Viral Analysis Error:", error);
+    throw new Error("Failed to analyze viral script.");
+  }
+};
+
+/**
  * Step 3: Finalize the script using Gemini 3 Pro
  */
 export const finalizeScriptData = async (selectedScript: ScriptVariation, productName: string, isFaceless: boolean): Promise<FinalScript> => {
@@ -178,4 +247,68 @@ export const finalizeScriptData = async (selectedScript: ScriptVariation, produc
     console.error("Finalization Error:", error);
     throw new Error("Failed to finalize script.");
   }
+};
+
+/**
+ * Refine an existing draft based on user instructions
+ */
+export const refineDraft = async (originalScript: string, instructions: string): Promise<string> => {
+  try {
+    const response = await ai.models.generateContent({
+      model: 'gemini-3-pro-preview',
+      contents: REFINE_DRAFT_PROMPT_TEMPLATE(originalScript, instructions),
+      config: {
+        systemInstruction: SYSTEM_INSTRUCTION,
+      }
+    });
+
+    const text = response.text;
+    if (!text) throw new Error("Empty response from refinement");
+
+    return text.trim();
+
+  } catch (error) {
+    console.error("Refinement Error:", error);
+    throw new Error("Failed to refine script.");
+  }
+};
+
+/**
+ * Transcribe audio/video file using Gemini Flash 2.5
+ */
+export const transcribeMedia = async (base64Data: string, mimeType: string): Promise<string> => {
+    try {
+        const response = await ai.models.generateContent({
+            model: 'gemini-2.5-flash',
+            contents: {
+                parts: [
+                    { inlineData: { mimeType, data: base64Data } },
+                    { text: "Transcribe the spoken audio in this file word-for-word. Ignore background noise. Return ONLY the transcript text." }
+                ]
+            }
+        });
+        return response.text || "";
+    } catch (error) {
+        console.error("Transcription Error:", error);
+        throw new Error("Failed to transcribe media.");
+    }
+};
+
+/**
+ * Transcribe/Summarize URL using Gemini Search Grounding
+ */
+export const transcribeUrl = async (url: string): Promise<string> => {
+    try {
+        const response = await ai.models.generateContent({
+            model: 'gemini-2.5-flash',
+            contents: `Find the transcript or a detailed description of the video content at this URL: ${url}. Return the spoken script or a very close approximation.`,
+            config: {
+                tools: [{ googleSearch: {} }],
+            }
+        });
+        return response.text || "";
+    } catch (error) {
+        console.error("URL Transcription Error:", error);
+        throw new Error("Failed to analyze URL.");
+    }
 };

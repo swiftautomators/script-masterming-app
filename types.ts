@@ -1,3 +1,4 @@
+
 export enum VideoLength {
   Short = '30 seconds',
   Medium = '45 seconds',
@@ -40,10 +41,38 @@ export enum AppStep {
   Drafting,
   Selection,
   Finalizing,
-  Result
+  Result,
+  Library // Added Library Step
 }
 
 export interface ResearchResult {
   summary: string;
   competitorUrls: string[];
+}
+
+// --- LIBRARY TYPES ---
+
+export interface SavedScript {
+  id: string;
+  title: string;
+  productName: string;
+  category: string;
+  framework: string;
+  thumbnail: string | null; 
+  dateCreated: string;
+  metrics?: {
+    views: string;
+    ctr: string;
+    sales: string;
+  };
+  content: string;
+}
+
+export interface LibraryResource {
+  id: string;
+  title: string;
+  category: string;
+  content: string;
+  tags: string[];
+  author: string; // "Maddie" or "Industry"
 }

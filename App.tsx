@@ -1,18 +1,24 @@
 
-import React, { useState } from 'react';
-import { AppStep, VideoLength, ProductState, ScriptVariation, FinalScript } from './types';
+import React, { useState, useEffect } from 'react';
+import { AppStep, VideoLength, ProductState, ScriptVariation, FinalScript, SavedScript } from './types';
 import { ScriptForm } from './components/ScriptForm';
 import { ScriptSelection } from './components/ScriptSelection';
 import { FinalOutputDisplay } from './components/FinalOutputDisplay';
 import { LoadingState } from './components/LoadingState';
-import { researchProduct, generateDrafts, finalizeScriptData } from './services/gemini';
-import { Play } from 'lucide-react';
+import { ScriptLibrary } from './components/ScriptLibrary';
+import { LoginScreen } from './components/LoginScreen';
+import { researchProduct, generateDrafts, finalizeScriptData, repurposeViralScript, refineDraft } from './services/gemini';
+import { Play, BookOpen, LogOut } from 'lucide-react';
 
 const App: React.FC = () => {
+  // Authentication State
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isAuthChecking, setIsAuthChecking] = useState(true);
+
+  // App State
   const [step, setStep] = useState<AppStep>(AppStep.Input);
   const [loadingMessage, setLoadingMessage] = useState<{title: string, sub: string}>({ title: "", sub: "" });
   
-  // State
   const [product, setProduct] = useState<ProductState>({ 
     name: '', 
     description: '', 
@@ -22,9 +28,32 @@ const App: React.FC = () => {
   const [videoLength, setVideoLength] = useState<VideoLength>(VideoLength.Short);
   const [researchSummary, setResearchSummary] = useState<string>('');
   const [draftScripts, setDraftScripts] = useState<ScriptVariation[]>([]);
-  const [finalScripts, setFinalScripts] = useState<FinalScript[]>([]); // Array of finalized scripts
+  const [finalScripts, setFinalScripts] = useState<FinalScript[]>([]);
+  
+  // Viral State
+  const [isViralMode, setIsViralMode] = useState(false);
 
-  // Logic
+  // Check for existing session
+  useEffect(() => {
+    const storedAuth = localStorage.getItem('tiktok_mastermind_auth');
+    if (storedAuth === 'Loki2024_VALID_SESSION') {
+      setIsAuthenticated(true);
+    }
+    setIsAuthChecking(false);
+  }, []);
+
+  const handleLogin = () => {
+    localStorage.setItem('tiktok_mastermind_auth', 'Loki2024_VALID_SESSION');
+    setIsAuthenticated(true);
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem('tiktok_mastermind_auth');
+    setIsAuthenticated(false);
+    resetApp();
+  };
+
+  // Logic for Standard Flow
   const handleResearchAndGenerate = async () => {
     setStep(AppStep.Researching);
     setLoadingMessage({
@@ -47,13 +76,21 @@ const App: React.FC = () => {
       // Short delay to let user read the transition
       await new Promise(resolve => setTimeout(resolve, 800));
 
-      // Step 2: Draft (Gemini Pro + Thinking)
+      // Step 2: Draft (Gemini Pro + Thinking + RAG)
       setStep(AppStep.Drafting);
+      setLoadingMessage({
+        title: "💎 Accessing Viral Knowledge Base...",
+        sub: "Retrieving high-converting voice patterns, hooks, and competitor intel."
+      });
+
+      // Artificial delay to show the RAG step
+      await new Promise(resolve => setTimeout(resolve, 1000));
+
       setLoadingMessage({
         title: "✍️ Crafting your conversion-focused scripts...",
         sub: product.isFaceless 
             ? "Applying faceless frameworks (ASMR, POV, Aesthetic) to your product." 
-            : "Applying viral frameworks (PAS, BAB) to your product."
+            : "Applying viral frameworks (PAS, BAB) with authentic voice patterns."
       });
 
       const drafts = await generateDrafts(product.name, videoLength, research.summary, product.isFaceless);
@@ -65,6 +102,65 @@ const App: React.FC = () => {
       alert("Something went wrong. Please ensure your API KEY is set in the environment.");
       setStep(AppStep.Input);
     }
+  };
+
+  // Logic for Viral Repurpose Flow
+  const handleViralAnalysis = async (url: string, script: string) => {
+     setStep(AppStep.Researching);
+     setLoadingMessage({
+        title: "🔥 Deconstructing Viral DNA...",
+        sub: "Analyzing psychological triggers, retention mechanisms, and hook structures."
+     });
+
+     try {
+        // Since product name might be empty in viral mode, set a fallback for finalization context later
+        if (!product.name) {
+            setProduct(prev => ({...prev, name: "Viral Product"}));
+        }
+
+        const result = await repurposeViralScript(script);
+        
+        setResearchSummary(result.analysis);
+        setDraftScripts(result.scripts);
+        
+        setStep(AppStep.Selection);
+
+     } catch (e) {
+        console.error(e);
+        alert("Failed to analyze the viral script.");
+        setStep(AppStep.Input);
+     }
+  };
+
+  const handleUseLibraryPattern = (script: SavedScript) => {
+    // Use the library script pattern to jumpstart the viral mode
+    setIsViralMode(true);
+    setProduct(prev => ({...prev, name: script.productName}));
+    setStep(AppStep.Input);
+  };
+
+  const handleAddViralScript = () => {
+      setIsViralMode(true);
+      setStep(AppStep.Input);
+  };
+
+  const handleRefineScript = async (scriptId: number, instructions: string) => {
+     const scriptToRefine = draftScripts.find(s => s.id === scriptId);
+     if (!scriptToRefine) return;
+
+     const originalContent = scriptToRefine.content;
+     
+     // Optimistic UI update or Loading indicator could go here
+     try {
+       const refinedContent = await refineDraft(originalContent, instructions);
+       
+       setDraftScripts(prev => prev.map(s => 
+         s.id === scriptId ? { ...s, content: refinedContent } : s
+       ));
+     } catch (e) {
+       console.error("Refinement failed", e);
+       alert("Failed to refine script.");
+     }
   };
 
   const handleSelectScripts = async (scripts: ScriptVariation[]) => {
@@ -93,7 +189,16 @@ const App: React.FC = () => {
     setStep(AppStep.Input);
     setFinalScripts([]);
     setDraftScripts([]);
+    setIsViralMode(false);
   };
+
+  if (isAuthChecking) {
+    return null; // Or a simple spinner
+  }
+
+  if (!isAuthenticated) {
+    return <LoginScreen onLogin={handleLogin} />;
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 font-sans text-gray-900">
@@ -106,11 +211,27 @@ const App: React.FC = () => {
             </div>
             <h1 className="font-bold text-xl tracking-tight">Script<span className="text-tiktok-pink">Mastermind</span></h1>
           </div>
-          {step !== AppStep.Input && (
-            <button onClick={resetApp} className="text-xs font-semibold text-gray-500 hover:text-tiktok-black px-3 py-1.5 rounded-full hover:bg-gray-100 transition-all">
-              New Project
-            </button>
-          )}
+          
+          <div className="flex items-center gap-3">
+             <button 
+                onClick={() => setStep(AppStep.Library)}
+                className={`text-sm font-bold flex items-center gap-2 px-3 py-2 rounded-lg transition-colors ${step === AppStep.Library ? 'bg-gray-100 text-tiktok-teal' : 'text-gray-600 hover:bg-gray-50'}`}
+             >
+                <BookOpen className="w-4 h-4" /> My Library
+             </button>
+             {step !== AppStep.Input && step !== AppStep.Library && (
+                <button onClick={resetApp} className="text-xs font-semibold text-gray-500 hover:text-tiktok-black px-3 py-1.5 rounded-full hover:bg-gray-100 transition-all border border-gray-200">
+                New Project
+                </button>
+             )}
+             <button 
+                onClick={handleLogout}
+                className="text-gray-400 hover:text-red-500 p-2 rounded-full hover:bg-red-50 transition-colors"
+                title="Logout"
+             >
+                <LogOut className="w-4 h-4" />
+             </button>
+          </div>
         </div>
       </header>
 
@@ -133,6 +254,9 @@ const App: React.FC = () => {
               setVideoLength={setVideoLength}
               onSubmit={handleResearchAndGenerate}
               isSubmitting={false}
+              isViralMode={isViralMode}
+              setIsViralMode={setIsViralMode}
+              onViralSubmit={handleViralAnalysis}
             />
           </div>
         )}
@@ -151,7 +275,9 @@ const App: React.FC = () => {
             scripts={draftScripts}
             researchSummary={researchSummary}
             onFinalize={handleSelectScripts}
+            onRequestChanges={handleRefineScript}
             isFaceless={product.isFaceless}
+            isViralMode={isViralMode}
           />
         )}
 
@@ -161,6 +287,14 @@ const App: React.FC = () => {
             finalScripts={finalScripts}
             onReset={resetApp}
           />
+        )}
+
+        {/* Library Step */}
+        {step === AppStep.Library && (
+           <ScriptLibrary 
+              onUsePattern={handleUseLibraryPattern} 
+              onAddViralScript={handleAddViralScript}
+           />
         )}
       </main>
 

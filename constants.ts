@@ -1,10 +1,13 @@
 
+
 export const SYSTEM_INSTRUCTION = `
 CORE IDENTITY:
 You are the TikTok Shop Script Mastermind, the world's most sophisticated AI script writer specializing in both Personality-Driven and Faceless content. Your singular purpose is to generate scripts that drive actual sales.
 
 TARGET CREATOR PROFILE (Standard):
 - Female content creator, age 29, authentic, relatable voice.
+- KNOWN AS: "@maddie.brass" style persona.
+- STYLE: High energy but authentic, "Bestie" vibes, uses specific community slang ("girly", "obsessed", "run don't walk").
 
 TARGET CREATOR PROFILE (Faceless):
 - The "Silent Seller". Focus is 100% on aesthetic, ASMR, product utility, and visual storytelling.
@@ -55,12 +58,16 @@ OUTPUT:
 A comprehensive, strategic market research summary.
 `;
 
-export const DRAFT_PROMPT_TEMPLATE = (product: string, length: string, research: string, isFaceless: boolean) => `
+export const DRAFT_PROMPT_TEMPLATE = (product: string, length: string, research: string, isFaceless: boolean, ragContext: string) => `
 MARKET INTELLIGENCE & RESEARCH BRIEF:
 ${research}
 
+KNOWLEDGE BASE RETRIEVAL (RAG CONTEXT):
+The following data has been retrieved from our high-performance database. YOU MUST USE THESE PATTERNS:
+${ragContext}
+
 TASK:
-Based on the research, create 3 DISTINCT, CONVERSION-FOCUSED TikTok Shop script variations for "${product}".
+Based on the research and the RAG Context, create 3 DISTINCT, CONVERSION-FOCUSED TikTok Shop script variations for "${product}".
 Target Length: ${length}.
 Mode: ${isFaceless ? "**FACELESS / AESTHETIC / ASMR**" : "**PERSONALITY / ON-CAMERA**"}
 
@@ -72,11 +79,12 @@ ${isFaceless ? `
 - **Tone:** Satisfying, calming, or rhythmic.
 ` : `
 **PERSONALITY MODE GUIDELINES:**
+- Use the retrieved "Voice Patterns" to sound like Maddie.
 - Focus on eye contact, expression, and relatable storytelling.
 `}
 
 VARIATION 1: PROBLEM-AGITATE-SOLUTION (PAS)
-${isFaceless ? "- Visual: Show the 'Problem' state physically (e.g. messy room, dull skin) without a face. \n- Solution: Aesthetic reveal of product fixing it." : "- Classic direct address format."}
+${isFaceless ? "- Visual: Show the 'Problem' state physically (e.g. messy room, dull skin) without a face. \n- Solution: Aesthetic reveal of product fixing it." : "- Classic direct address format using retrieved hooks."}
 
 VARIATION 2: BEFORE-AFTER-BRIDGE (BAB)
 ${isFaceless ? "- Visual: Split screen or instant transition snap from Before to After.\n- Focus on the visual evidence of the change." : "- Show struggle then reveal transformation."}
@@ -106,4 +114,65 @@ You MUST output valid JSON with the following schema:
   "hashtags": ["tag1", "tag2", "tag3", "tag4", "tag5"],
   "notes": "${isFaceless ? "Specific advice on lighting, textures to emphasize, and transition speeds." : "Filming advice and specific visual angles."}"
 }
+`;
+
+export const VIRAL_REPURPOSE_PROMPT = (originalScript: string) => `
+TASK: VIRAL SCRIPT ANALYSIS & ITERATION
+
+Original Viral Script:
+"${originalScript}"
+
+ACTION 1: DECONSTRUCT
+Analyze WHY this script went viral. Identify:
+- The psychological trigger in the hook.
+- The pacing structure.
+- The "Retention Mechanism" (what kept them watching).
+- The specific CTA phrasing.
+
+ACTION 2: ITERATE (Create 3 Variations)
+Create 3 NEW scripts that use the SAME winning DNA/structure but refresh the content so it's not a direct copy.
+- Variation 1: "The Direct Upgrade" (Same angle, punchier wording).
+- Variation 2: "The Reverse Angle" (Same product, different opening pain point).
+- Variation 3: "The Skeptic Angle" (Address a common objection immediately).
+
+Output valid JSON with this schema:
+{
+  "analysis": "A short, punchy paragraph explaining exactly why the original worked (The 'Performance Insights').",
+  "scripts": [
+    {
+      "id": 1,
+      "title": "Refined Iteration",
+      "framework": "The Direct Upgrade",
+      "hookStrategy": "Enhanced version of original hook",
+      "content": "Full script..."
+    },
+    {
+      "id": 2,
+      "title": "New Angle",
+      "framework": "The Reverse Angle",
+      "hookStrategy": "Alternative pain point hook",
+      "content": "Full script..."
+    },
+    {
+      "id": 3,
+      "title": "Objection Killer",
+      "framework": "The Skeptic Angle",
+      "hookStrategy": "Disarming the viewer immediately",
+      "content": "Full script..."
+    }
+  ]
+}
+`;
+
+export const REFINE_DRAFT_PROMPT_TEMPLATE = (originalScript: string, instructions: string) => `
+TASK: REFINE SCRIPT
+Original Script:
+"${originalScript}"
+
+User Instructions for Changes:
+"${instructions}"
+
+ACTION:
+Rewrite the script applying the user's instructions while maintaining the original framework, timing, and successful elements.
+Return ONLY the raw text of the new script content. Do not include title, framework label, or JSON formatting. Just the script body.
 `;
