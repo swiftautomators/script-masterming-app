@@ -1,16 +1,31 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { ScriptVariation } from '../types';
-import { CheckCircle, Edit2, Star, MessageSquarePlus } from 'lucide-react';
+import { CheckCircle, Star, Layers } from 'lucide-react';
 
 interface ScriptSelectionProps {
   scripts: ScriptVariation[];
-  onSelect: (script: ScriptVariation) => void;
-  onEdit: (script: ScriptVariation) => void; 
+  onFinalize: (selectedScripts: ScriptVariation[]) => void;
   researchSummary: string;
+  isFaceless: boolean;
 }
 
-export const ScriptSelection: React.FC<ScriptSelectionProps> = ({ scripts, onSelect, researchSummary }) => {
+export const ScriptSelection: React.FC<ScriptSelectionProps> = ({ scripts, onFinalize, researchSummary, isFaceless }) => {
+  const [selectedIds, setSelectedIds] = useState<number[]>([]);
+
+  const toggleSelection = (id: number) => {
+    if (selectedIds.includes(id)) {
+      setSelectedIds(selectedIds.filter(sid => sid !== id));
+    } else {
+      setSelectedIds([...selectedIds, id]);
+    }
+  };
+
+  const handleFinalize = () => {
+    const selected = scripts.filter(s => selectedIds.includes(s.id));
+    onFinalize(selected);
+  };
+
   if (!scripts || scripts.length === 0) {
     return (
         <div className="text-center py-20">
@@ -20,10 +35,12 @@ export const ScriptSelection: React.FC<ScriptSelectionProps> = ({ scripts, onSel
   }
 
   return (
-    <div className="max-w-6xl mx-auto p-4 pb-20">
+    <div className="max-w-6xl mx-auto p-4 pb-32">
       <div className="text-center mb-10">
-        <h2 className="text-3xl font-bold text-gray-900 mb-3">Your Viral Scripts Are Ready</h2>
-        <p className="text-gray-500">Choose the framework that fits your style best.</p>
+        <h2 className="text-3xl font-bold text-gray-900 mb-3">
+            {isFaceless ? 'Faceless Drafts Generated' : 'Viral Scripts Ready'}
+        </h2>
+        <p className="text-gray-500">Select one or more scripts to finalize.</p>
       </div>
 
       {/* Research Insight Banner */}
@@ -37,17 +54,27 @@ export const ScriptSelection: React.FC<ScriptSelectionProps> = ({ scripts, onSel
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {scripts.map((script, index) => {
-            // Simulate a recommendation logic (e.g. typically PAS is strong for products)
             const isRecommended = index === 0;
+            const isSelected = selectedIds.includes(script.id);
 
             return (
               <div 
                 key={script.id || index}
-                className={`bg-white rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-300 border flex flex-col overflow-hidden relative group ${isRecommended ? 'border-tiktok-pink ring-2 ring-tiktok-pink/20 scale-[1.02]' : 'border-gray-100'}`}
+                onClick={() => toggleSelection(script.id)}
+                className={`cursor-pointer bg-white rounded-2xl shadow-lg transition-all duration-300 border flex flex-col overflow-hidden relative group 
+                    ${isSelected 
+                        ? 'border-tiktok-teal ring-2 ring-tiktok-teal shadow-2xl scale-[1.02]' 
+                        : isRecommended ? 'border-tiktok-pink/30' : 'border-gray-100 hover:border-gray-300'
+                    }`}
               >
+                {/* Selection Indicator */}
+                <div className={`absolute top-4 right-4 z-20 w-6 h-6 rounded-full border-2 flex items-center justify-center transition-colors ${isSelected ? 'bg-tiktok-teal border-tiktok-teal' : 'bg-white border-gray-300'}`}>
+                    {isSelected && <CheckCircle className="w-4 h-4 text-white" />}
+                </div>
+
                 {isRecommended && (
-                    <div className="absolute top-0 right-0 bg-tiktok-pink text-white text-xs font-bold px-3 py-1 rounded-bl-xl z-10 flex items-center gap-1">
-                        <Star className="w-3 h-3 fill-current" /> Recommended
+                    <div className="absolute top-0 left-0 bg-tiktok-pink text-white text-xs font-bold px-3 py-1 rounded-br-xl z-10 flex items-center gap-1">
+                        <Star className="w-3 h-3 fill-current" /> Top Pick
                     </div>
                 )}
                 
@@ -72,29 +99,31 @@ export const ScriptSelection: React.FC<ScriptSelectionProps> = ({ scripts, onSel
                       <p className="whitespace-pre-wrap text-sm leading-relaxed font-medium">{script.content}</p>
                     </div>
                   </div>
-
-                  <div className="space-y-3 mt-auto pt-4">
-                    <button
-                      onClick={() => onSelect(script)}
-                      className={`w-full py-3.5 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-colors ${
-                          isRecommended 
-                          ? 'bg-tiktok-pink text-white hover:bg-pink-600 shadow-lg shadow-pink-200' 
-                          : 'bg-gray-900 text-white hover:bg-gray-800'
-                      }`}
-                    >
-                      <CheckCircle className="w-4 h-4" />
-                      Select This Script
-                    </button>
-                    
-                    <button className="w-full py-2.5 border border-gray-200 rounded-xl font-semibold text-sm text-gray-500 flex items-center justify-center gap-2 hover:bg-gray-50 hover:text-gray-800 transition-colors">
-                        <MessageSquarePlus className="w-4 h-4" />
-                        Request Changes
-                    </button>
-                  </div>
                 </div>
               </div>
             )
         })}
+      </div>
+
+      {/* Sticky Action Bar */}
+      <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 p-4 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)] z-50">
+          <div className="max-w-4xl mx-auto flex items-center justify-between">
+             <div className="flex items-center gap-2">
+                 <Layers className="w-5 h-5 text-tiktok-teal" />
+                 <span className="font-bold text-gray-900">{selectedIds.length} Scripts Selected</span>
+             </div>
+             <button
+                onClick={handleFinalize}
+                disabled={selectedIds.length === 0}
+                className={`px-8 py-3 rounded-full font-bold text-white transition-all ${
+                    selectedIds.length > 0 
+                    ? 'bg-gray-900 hover:bg-gray-800 shadow-lg' 
+                    : 'bg-gray-300 cursor-not-allowed'
+                }`}
+             >
+                {selectedIds.length > 1 ? `Finalize ${selectedIds.length} Scripts` : 'Finalize Script'}
+             </button>
+          </div>
       </div>
     </div>
   );

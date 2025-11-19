@@ -13,11 +13,16 @@ const App: React.FC = () => {
   const [loadingMessage, setLoadingMessage] = useState<{title: string, sub: string}>({ title: "", sub: "" });
   
   // State
-  const [product, setProduct] = useState<ProductState>({ name: '', description: '', image: null });
+  const [product, setProduct] = useState<ProductState>({ 
+    name: '', 
+    description: '', 
+    image: null, 
+    isFaceless: false 
+  });
   const [videoLength, setVideoLength] = useState<VideoLength>(VideoLength.Short);
   const [researchSummary, setResearchSummary] = useState<string>('');
   const [draftScripts, setDraftScripts] = useState<ScriptVariation[]>([]);
-  const [finalScript, setFinalScript] = useState<FinalScript | null>(null);
+  const [finalScripts, setFinalScripts] = useState<FinalScript[]>([]); // Array of finalized scripts
 
   // Logic
   const handleResearchAndGenerate = async () => {
@@ -34,7 +39,9 @@ const App: React.FC = () => {
       
       setLoadingMessage({
         title: "🧠 Analyzing viral patterns...",
-        sub: "Synthesizing market data to find the perfect sales angle."
+        sub: product.isFaceless 
+            ? "Analyzing top-performing faceless and aesthetic content..." 
+            : "Synthesizing market data to find the perfect sales angle."
       });
 
       // Short delay to let user read the transition
@@ -44,10 +51,12 @@ const App: React.FC = () => {
       setStep(AppStep.Drafting);
       setLoadingMessage({
         title: "✍️ Crafting your conversion-focused scripts...",
-        sub: "Applying viral frameworks (PAS, BAB) to your product."
+        sub: product.isFaceless 
+            ? "Applying faceless frameworks (ASMR, POV, Aesthetic) to your product." 
+            : "Applying viral frameworks (PAS, BAB) to your product."
       });
 
-      const drafts = await generateDrafts(product.name, videoLength, research.summary);
+      const drafts = await generateDrafts(product.name, videoLength, research.summary, product.isFaceless);
       setDraftScripts(drafts);
       
       setStep(AppStep.Selection);
@@ -58,23 +67,31 @@ const App: React.FC = () => {
     }
   };
 
-  const handleSelectScript = async (script: ScriptVariation) => {
+  const handleSelectScripts = async (scripts: ScriptVariation[]) => {
     setStep(AppStep.Finalizing);
+    setLoadingMessage({
+        title: `Polishing ${scripts.length} Script${scripts.length > 1 ? 's' : ''}...`,
+        sub: `Optimizing ${product.isFaceless ? 'visual transitions and text overlays' : 'visual cues and captions'}.`
+    });
+
     try {
-      const final = await finalizeScriptData(script, product.name);
-      setFinalScript(final);
+      // Process all selected scripts in parallel
+      const promises = scripts.map(script => finalizeScriptData(script, product.name, product.isFaceless));
+      const finals = await Promise.all(promises);
+      
+      setFinalScripts(finals);
       setStep(AppStep.Result);
     } catch (e) {
       console.error(e);
-      alert("Failed to finalize script. Try again.");
+      alert("Failed to finalize scripts. Try again.");
       setStep(AppStep.Selection);
     }
   };
 
   const resetApp = () => {
-    setProduct({ name: '', description: '', image: null });
+    setProduct({ name: '', description: '', image: null, isFaceless: false });
     setStep(AppStep.Input);
-    setFinalScript(null);
+    setFinalScripts([]);
     setDraftScripts([]);
   };
 
@@ -121,7 +138,7 @@ const App: React.FC = () => {
         )}
 
         {/* Loading Steps */}
-        {(step === AppStep.Researching || step === AppStep.Drafting) && (
+        {(step === AppStep.Researching || step === AppStep.Drafting || step === AppStep.Finalizing) && (
           <LoadingState 
             message={loadingMessage.title} 
             subMessage={loadingMessage.sub}
@@ -133,23 +150,15 @@ const App: React.FC = () => {
           <ScriptSelection 
             scripts={draftScripts}
             researchSummary={researchSummary}
-            onSelect={handleSelectScript}
-            onEdit={() => {}}
-          />
-        )}
-
-        {/* Finalizing Loading */}
-        {step === AppStep.Finalizing && (
-          <LoadingState 
-            message="Polishing Your Script..." 
-            subMessage="Adding visual cues, timing markers, and SEO-optimized captions."
+            onFinalize={handleSelectScripts}
+            isFaceless={product.isFaceless}
           />
         )}
 
         {/* Step 4: Result */}
-        {step === AppStep.Result && finalScript && (
+        {step === AppStep.Result && finalScripts.length > 0 && (
           <FinalOutputDisplay 
-            finalScript={finalScript}
+            finalScripts={finalScripts}
             onReset={resetApp}
           />
         )}

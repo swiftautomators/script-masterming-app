@@ -1,7 +1,7 @@
 
 import React, { useRef } from 'react';
 import { VideoLength, ProductState } from '../types';
-import { Camera, Upload, X, Clock } from 'lucide-react';
+import { Camera, X, Clock, Ghost } from 'lucide-react';
 
 interface ScriptFormProps {
   product: ProductState;
@@ -96,7 +96,7 @@ export const ScriptForm: React.FC<ScriptFormProps> = ({
       </div>
 
       {/* Description */}
-      <div className="mb-8">
+      <div className="mb-6">
         <label className="block text-sm font-bold text-gray-800 mb-2">Product Details</label>
         <textarea
           value={product.description}
@@ -109,6 +109,28 @@ export const ScriptForm: React.FC<ScriptFormProps> = ({
           <span className="bg-yellow-100 text-yellow-800 px-1.5 py-0.5 rounded font-bold text-[10px]">PRO TIP</span> 
           The more specific you are, the better your scripts will be!
         </p>
+      </div>
+
+      {/* Faceless Toggle */}
+      <div className="mb-8 bg-gray-50 rounded-xl p-4 border border-gray-200 flex items-center justify-between">
+         <div className="flex items-center gap-3">
+             <div className="bg-white p-2 rounded-lg shadow-sm text-gray-800">
+                <Ghost className="w-5 h-5" />
+             </div>
+             <div>
+                 <h4 className="font-bold text-gray-900 text-sm">Faceless Video Mode</h4>
+                 <p className="text-xs text-gray-500">Generate scripts optimized for aesthetic, POV, or ASMR visuals.</p>
+             </div>
+         </div>
+         <label className="inline-flex items-center cursor-pointer">
+            <input 
+                type="checkbox" 
+                checked={product.isFaceless} 
+                onChange={(e) => setProduct({...product, isFaceless: e.target.checked})} 
+                className="sr-only peer" 
+            />
+            <div className="relative w-14 h-7 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:start-[4px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-6 after:w-6 after:transition-all peer-checked:bg-gradient-to-r peer-checked:from-tiktok-pink peer-checked:to-tiktok-teal"></div>
+        </label>
       </div>
 
       {/* Video Length */}

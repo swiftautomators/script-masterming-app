@@ -15,6 +15,8 @@ export interface ScriptVariation {
 }
 
 export interface FinalScript {
+  id?: number; // Added for mapping
+  framework?: string; // Added for display
   verbalHook: string;
   visualHook: string;
   onScreenHook: string;
@@ -29,6 +31,7 @@ export interface ProductState {
   name: string;
   description: string;
   image: string | null; // Base64
+  isFaceless: boolean;
 }
 
 export enum AppStep {

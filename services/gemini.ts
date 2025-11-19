@@ -78,12 +78,12 @@ export const researchProduct = async (productName: string, productDesc: string, 
 /**
  * Step 2: Generate Draft Scripts using Gemini 3 Pro (Thinking Mode)
  */
-export const generateDrafts = async (productName: string, length: string, researchSummary: string): Promise<ScriptVariation[]> => {
+export const generateDrafts = async (productName: string, length: string, researchSummary: string, isFaceless: boolean): Promise<ScriptVariation[]> => {
   try {
     // Use Gemini 3 Pro for creative writing and "Thinking"
     const response = await ai.models.generateContent({
       model: 'gemini-3-pro-preview',
-      contents: DRAFT_PROMPT_TEMPLATE(productName, length, researchSummary),
+      contents: DRAFT_PROMPT_TEMPLATE(productName, length, researchSummary, isFaceless),
       config: {
         systemInstruction: SYSTEM_INSTRUCTION,
         thinkingConfig: { thinkingBudget: 32768 }, // Deep thinking for creative structure
@@ -138,11 +138,11 @@ export const generateDrafts = async (productName: string, length: string, resear
 /**
  * Step 3: Finalize the script using Gemini 3 Pro
  */
-export const finalizeScriptData = async (selectedScript: ScriptVariation, productName: string): Promise<FinalScript> => {
+export const finalizeScriptData = async (selectedScript: ScriptVariation, productName: string, isFaceless: boolean): Promise<FinalScript> => {
   try {
     const response = await ai.models.generateContent({
       model: 'gemini-3-pro-preview',
-      contents: FINALIZATION_PROMPT_TEMPLATE(selectedScript.content, productName),
+      contents: FINALIZATION_PROMPT_TEMPLATE(selectedScript.content, productName, isFaceless),
       config: {
         systemInstruction: SYSTEM_INSTRUCTION,
         responseMimeType: "application/json", // Ensure structured output
@@ -166,7 +166,13 @@ export const finalizeScriptData = async (selectedScript: ScriptVariation, produc
     const jsonText = response.text;
     if (!jsonText) throw new Error("Empty response from finalization");
 
-    return parseAIJSON<FinalScript>(jsonText);
+    const parsed = parseAIJSON<FinalScript>(jsonText);
+    // Attach original metadata for display purposes
+    return {
+        ...parsed,
+        id: selectedScript.id,
+        framework: selectedScript.framework
+    };
 
   } catch (error) {
     console.error("Finalization Error:", error);
