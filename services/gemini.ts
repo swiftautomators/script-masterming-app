@@ -13,9 +13,7 @@ const parseAIJSON = <T>(text: string): T => {
   try {
     let cleanText = text.trim();
     // Remove markdown code blocks if present (e.g. ```json ... ```)
-    if (cleanText.startsWith('```')) {
-      cleanText = cleanText.replace(/^```(?:json)?/, '').replace(/```$/, '').trim();
-    }
+    cleanText = cleanText.replace(/^```(?:json)?\s*/, '').replace(/\s*```$/, '');
     return JSON.parse(cleanText) as T;
   } catch (e) {
     console.error("JSON Parse Error:", e);
@@ -148,6 +146,20 @@ export const finalizeScriptData = async (selectedScript: ScriptVariation, produc
       config: {
         systemInstruction: SYSTEM_INSTRUCTION,
         responseMimeType: "application/json", // Ensure structured output
+        responseSchema: {
+            type: Type.OBJECT,
+            properties: {
+                verbalHook: { type: Type.STRING },
+                visualHook: { type: Type.STRING },
+                onScreenHook: { type: Type.STRING },
+                fullScript: { type: Type.STRING },
+                additionalText: { type: Type.STRING },
+                caption: { type: Type.STRING },
+                hashtags: { type: Type.ARRAY, items: { type: Type.STRING } },
+                notes: { type: Type.STRING },
+            },
+            required: ["verbalHook", "visualHook", "onScreenHook", "fullScript", "additionalText", "caption", "hashtags", "notes"],
+        }
       }
     });
 

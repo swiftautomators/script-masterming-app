@@ -12,7 +12,6 @@ export const FinalOutputDisplay: React.FC<FinalOutputDisplayProps> = ({ finalScr
   
   const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text);
-    // Ideally add a toast here, but standard alert for now is too intrusive, so we just copy silently or assume UI feedback isn't critical for this prompt scope.
   };
 
   const handleDownload = () => {
@@ -22,25 +21,25 @@ TIKTOK SHOP SCRIPT MASTERMIND
 -----------------------------
 
 VERBAL HOOK:
-${finalScript.verbalHook}
+${finalScript.verbalHook || ''}
 
 VISUAL HOOK:
-${finalScript.visualHook}
+${finalScript.visualHook || ''}
 
 FULL SCRIPT:
-${finalScript.fullScript}
+${finalScript.fullScript || ''}
 
 ON-SCREEN TEXT:
-${finalScript.additionalText}
+${finalScript.additionalText || ''}
 
 CAPTION:
-${finalScript.caption}
+${finalScript.caption || ''}
 
 HASHTAGS:
-${finalScript.hashtags.join(' ')}
+${finalScript.hashtags?.join(' ') || ''}
 
 NOTES:
-${finalScript.notes}
+${finalScript.notes || ''}
     `;
     const file = new Blob([fileContent], {type: 'text/plain'});
     element.href = URL.createObjectURL(file);
@@ -54,13 +53,13 @@ ${finalScript.notes}
       try {
         await navigator.share({
           title: 'My TikTok Script',
-          text: finalScript.fullScript,
+          text: finalScript.fullScript || '',
         });
       } catch (err) {
         console.error("Share failed", err);
       }
     } else {
-      copyToClipboard(finalScript.fullScript);
+      copyToClipboard(finalScript.fullScript || '');
       alert("Script copied to clipboard!");
     }
   };
@@ -110,21 +109,21 @@ ${finalScript.notes}
         </div>
         <div className="p-6 space-y-8">
             <div>
-                <SectionHeader icon={Mic} title="Verbal Hook (Audio)" onCopy={() => copyToClipboard(finalScript.verbalHook)} />
+                <SectionHeader icon={Mic} title="Verbal Hook (Audio)" onCopy={() => copyToClipboard(finalScript.verbalHook || '')} />
                 <div className="bg-blue-50 p-4 rounded-xl border border-blue-100">
-                    <p className="text-lg font-bold text-gray-900">"{finalScript.verbalHook}"</p>
+                    <p className="text-lg font-bold text-gray-900">"{finalScript.verbalHook || 'Generating...'}"</p>
                 </div>
             </div>
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
-                    <SectionHeader icon={Eye} title="Visual Hook" onCopy={() => copyToClipboard(finalScript.visualHook)} />
-                    <p className="text-sm text-gray-700 leading-relaxed bg-gray-50 p-3 rounded-lg border border-gray-100">{finalScript.visualHook}</p>
+                    <SectionHeader icon={Eye} title="Visual Hook" onCopy={() => copyToClipboard(finalScript.visualHook || '')} />
+                    <p className="text-sm text-gray-700 leading-relaxed bg-gray-50 p-3 rounded-lg border border-gray-100">{finalScript.visualHook || 'Generating...'}</p>
                 </div>
                 <div>
-                    <SectionHeader icon={Smartphone} title="On-Screen Text (0-3s)" onCopy={() => copyToClipboard(finalScript.onScreenHook)} />
+                    <SectionHeader icon={Smartphone} title="On-Screen Text (0-3s)" onCopy={() => copyToClipboard(finalScript.onScreenHook || '')} />
                     <div className="bg-black p-3 rounded-lg text-center shadow-lg transform rotate-1">
-                        <p className="text-white font-bold text-lg tracking-wide">{finalScript.onScreenHook}</p>
+                        <p className="text-white font-bold text-lg tracking-wide">{finalScript.onScreenHook || 'Generating...'}</p>
                     </div>
                 </div>
             </div>
@@ -134,11 +133,11 @@ ${finalScript.notes}
       {/* Full Script */}
       <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden mb-6">
         <div className="bg-gray-50/50 px-6 py-4 border-b border-gray-100">
-             <SectionHeader icon={FileText} title="Full Script" onCopy={() => copyToClipboard(finalScript.fullScript)} />
+             <SectionHeader icon={FileText} title="Full Script" onCopy={() => copyToClipboard(finalScript.fullScript || '')} />
         </div>
         <div className="p-8">
             <pre className="whitespace-pre-wrap font-sans text-gray-800 text-lg leading-relaxed pl-4 border-l-4 border-tiktok-pink/20">
-                {finalScript.fullScript}
+                {finalScript.fullScript || 'Generating...'}
             </pre>
         </div>
       </div>
@@ -146,13 +145,13 @@ ${finalScript.notes}
       {/* Details Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
         <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
-            <SectionHeader icon={Smartphone} title="Text Overlays" onCopy={() => copyToClipboard(finalScript.additionalText)} />
-            <p className="text-sm text-gray-600 whitespace-pre-wrap leading-relaxed">{finalScript.additionalText}</p>
+            <SectionHeader icon={Smartphone} title="Text Overlays" onCopy={() => copyToClipboard(finalScript.additionalText || '')} />
+            <p className="text-sm text-gray-600 whitespace-pre-wrap leading-relaxed">{finalScript.additionalText || 'Generating...'}</p>
         </div>
 
         <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
-             <SectionHeader icon={Hash} title="Caption & Hashtags" onCopy={() => copyToClipboard(`${finalScript.caption} ${finalScript.hashtags.join(' ')}`)} />
-             <p className="text-sm text-gray-800 mb-4 font-medium">{finalScript.caption}</p>
+             <SectionHeader icon={Hash} title="Caption & Hashtags" onCopy={() => copyToClipboard(`${finalScript.caption || ''} ${finalScript.hashtags?.join(' ') || ''}`)} />
+             <p className="text-sm text-gray-800 mb-4 font-medium">{finalScript.caption || 'Generating...'}</p>
              <div className="flex flex-wrap gap-2">
                 {finalScript.hashtags?.map((tag, i) => (
                     <span key={i} className="text-xs bg-gray-100 text-blue-600 px-2.5 py-1 rounded-md font-semibold">
@@ -166,7 +165,7 @@ ${finalScript.notes}
       {/* Notes */}
       <div className="bg-yellow-50 border border-yellow-100 rounded-2xl p-6 mb-8">
          <SectionHeader icon={Lightbulb} title="Director's Notes" />
-         <p className="text-yellow-900 text-sm leading-relaxed">{finalScript.notes}</p>
+         <p className="text-yellow-900 text-sm leading-relaxed">{finalScript.notes || 'Generating...'}</p>
       </div>
 
       <button
