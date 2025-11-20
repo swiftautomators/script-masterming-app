@@ -42,7 +42,8 @@ export enum AppStep {
   Selection,
   Finalizing,
   Result,
-  Library // Added Library Step
+  Library, // Added Library Step
+  CompetitorReport // Added Competitor Report Step
 }
 
 export interface ResearchResult {
@@ -75,4 +76,19 @@ export interface LibraryResource {
   content: string;
   tags: string[];
   author: string; // "Maddie" or "Industry"
+}
+
+// --- COMPETITOR ANALYSIS TYPES ---
+
+export interface CompetitorAnalysis {
+  competitorName: string;
+  performanceOverview: string;
+  successfulPatterns: {
+    patternName: string;
+    example: string;
+    whyItWorks: string;
+  }[];
+  opportunities: string[];
+  differentiationStrategy: string;
+  sampleScript: string;
 }

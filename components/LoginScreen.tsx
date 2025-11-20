@@ -13,6 +13,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin }) => {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    // Strict check for the password
     if (password === 'Loki2024!') {
       onLogin();
     } else {
@@ -37,7 +38,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin }) => {
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="relative">
-              <KeyRound className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+              <KeyRound className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5 z-10" />
               <input
                 type="password"
                 value={password}
@@ -45,12 +46,13 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin }) => {
                   setPassword(e.target.value);
                   setError('');
                 }}
-                className={`w-full pl-10 pr-4 py-3 border rounded-xl outline-none focus:ring-2 transition-all ${
+                className={`w-full pl-10 pr-4 py-3 border rounded-xl outline-none focus:ring-2 transition-all text-black placeholder-gray-500 ${
                   error 
                     ? 'border-red-300 focus:ring-red-200 bg-red-50' 
-                    : 'border-gray-200 focus:ring-tiktok-teal/50 focus:border-tiktok-teal'
+                    : 'border-gray-200 focus:ring-tiktok-teal/50 focus:border-tiktok-teal bg-white'
                 }`}
                 placeholder="Password"
+                autoComplete="current-password"
               />
             </div>
 

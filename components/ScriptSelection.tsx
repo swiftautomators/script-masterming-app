@@ -140,7 +140,7 @@ export const ScriptSelection: React.FC<ScriptSelectionProps> = ({ scripts, onFin
                                 value={editInstructions}
                                 onChange={(e) => setEditInstructions(e.target.value)}
                                 placeholder="Example: Make it funnier, add more urgency..."
-                                className="w-full text-xs p-2 border border-gray-300 rounded-lg mb-2 focus:border-tiktok-teal outline-none"
+                                className="w-full text-xs p-2 border border-gray-300 rounded-lg mb-2 focus:border-tiktok-teal outline-none bg-white text-black"
                                 rows={2}
                                 autoFocus
                             />

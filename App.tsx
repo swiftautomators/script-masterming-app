@@ -1,13 +1,14 @@
 
 import React, { useState, useEffect } from 'react';
-import { AppStep, VideoLength, ProductState, ScriptVariation, FinalScript, SavedScript } from './types';
+import { AppStep, VideoLength, ProductState, ScriptVariation, FinalScript, SavedScript, CompetitorAnalysis } from './types';
 import { ScriptForm } from './components/ScriptForm';
 import { ScriptSelection } from './components/ScriptSelection';
 import { FinalOutputDisplay } from './components/FinalOutputDisplay';
 import { LoadingState } from './components/LoadingState';
 import { ScriptLibrary } from './components/ScriptLibrary';
 import { LoginScreen } from './components/LoginScreen';
-import { researchProduct, generateDrafts, finalizeScriptData, repurposeViralScript, refineDraft } from './services/gemini';
+import { CompetitorAnalysisDisplay } from './components/CompetitorAnalysisDisplay';
+import { researchProduct, generateDrafts, finalizeScriptData, repurposeViralScript, refineDraft, analyzeCompetitor } from './services/gemini';
 import { Play, BookOpen, LogOut } from 'lucide-react';
 
 const App: React.FC = () => {
@@ -29,6 +30,9 @@ const App: React.FC = () => {
   const [researchSummary, setResearchSummary] = useState<string>('');
   const [draftScripts, setDraftScripts] = useState<ScriptVariation[]>([]);
   const [finalScripts, setFinalScripts] = useState<FinalScript[]>([]);
+  
+  // Competitor State
+  const [competitorReport, setCompetitorReport] = useState<CompetitorAnalysis | null>(null);
   
   // Viral State
   const [isViralMode, setIsViralMode] = useState(false);
@@ -132,6 +136,25 @@ const App: React.FC = () => {
      }
   };
 
+  // Logic for Competitor Analysis
+  const handleCompetitorAnalysis = async (handle: string) => {
+    setStep(AppStep.Researching); // Reusing the loading step visual
+    setLoadingMessage({
+      title: "🕵️ Spying on Competitor...",
+      sub: "Analyzing their hooks, sales tactics, and audience sentiment using Google Search."
+    });
+
+    try {
+      const result = await analyzeCompetitor(handle);
+      setCompetitorReport(result);
+      setStep(AppStep.CompetitorReport);
+    } catch (e) {
+      console.error(e);
+      alert("Failed to analyze competitor. Please check the handle/URL and try again.");
+      setStep(AppStep.Input);
+    }
+  };
+
   const handleUseLibraryPattern = (script: SavedScript) => {
     // Use the library script pattern to jumpstart the viral mode
     setIsViralMode(true);
@@ -190,6 +213,7 @@ const App: React.FC = () => {
     setFinalScripts([]);
     setDraftScripts([]);
     setIsViralMode(false);
+    setCompetitorReport(null);
   };
 
   if (isAuthChecking) {
@@ -257,6 +281,7 @@ const App: React.FC = () => {
               isViralMode={isViralMode}
               setIsViralMode={setIsViralMode}
               onViralSubmit={handleViralAnalysis}
+              onCompetitorAnalyze={handleCompetitorAnalysis}
             />
           </div>
         )}
@@ -286,6 +311,14 @@ const App: React.FC = () => {
           <FinalOutputDisplay 
             finalScripts={finalScripts}
             onReset={resetApp}
+          />
+        )}
+
+        {/* Competitor Report Step */}
+        {step === AppStep.CompetitorReport && competitorReport && (
+          <CompetitorAnalysisDisplay 
+            analysis={competitorReport}
+            onBack={resetApp}
           />
         )}
 

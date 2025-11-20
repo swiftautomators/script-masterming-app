@@ -133,9 +133,9 @@ export const ScriptLibrary: React.FC<ScriptLibraryProps> = ({ onUsePattern, onAd
                 <div className="flex gap-4 mb-6">
                     <div className="relative flex-1">
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                        <input type="text" placeholder="Search patterns, hooks, strategies..." className="w-full pl-10 pr-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:border-tiktok-teal" />
+                        <input type="text" placeholder="Search patterns, hooks, strategies..." className="w-full pl-10 pr-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:border-tiktok-teal bg-white text-black" />
                     </div>
-                    <select className="px-4 py-3 rounded-xl border border-gray-200 bg-white font-medium text-gray-600 outline-none">
+                    <select className="px-4 py-3 rounded-xl border border-gray-200 bg-white font-medium text-black outline-none">
                         <option>All Categories</option>
                         <option>Hooks</option>
                         <option>Visuals</option>

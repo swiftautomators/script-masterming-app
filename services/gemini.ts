@@ -1,8 +1,10 @@
 
+
+
 import { GoogleGenAI, Type } from "@google/genai";
-import { SYSTEM_INSTRUCTION, RESEARCH_PROMPT_TEMPLATE, DRAFT_PROMPT_TEMPLATE, FINALIZATION_PROMPT_TEMPLATE, VIRAL_REPURPOSE_PROMPT, REFINE_DRAFT_PROMPT_TEMPLATE } from "../constants";
-import { ResearchResult, ScriptVariation, FinalScript } from "../types";
-import { retrieveContext } from "./knowledgeBase";
+import { SYSTEM_INSTRUCTION, RESEARCH_PROMPT_TEMPLATE, DRAFT_PROMPT_TEMPLATE, FINALIZATION_PROMPT_TEMPLATE, VIRAL_REPURPOSE_PROMPT, REFINE_DRAFT_PROMPT_TEMPLATE, COMPETITOR_ANALYSIS_PROMPT } from "../constants";
+import { ResearchResult, ScriptVariation, FinalScript, CompetitorAnalysis } from "../types";
+import { retrieveContext, getMaddiePersonaString } from "./knowledgeBase";
 
 // Lazy initialization helper to prevent top-level crashes during build/startup
 const getAI = () => {
@@ -101,16 +103,27 @@ export const generateDrafts = async (productName: string, length: string, resear
     const ragContextString = `
     DETECTED CATEGORY: ${context.category.toUpperCase()}
     
-    VOICE PATTERNS TO USE:
-    ${context.voicePatterns.map(v => `- "${v.pattern}" (${v.usageContext})`).join('\n')}
+    === MADDIE'S DNA (MANDATORY VOICE) ===
+    CHARACTERISTICS:
+    ${context.maddieDNA.characteristics.map(c => `- ${c}`).join('\n')}
     
-    PROVEN HOOKS TO ADAPT:
-    ${context.hooks.map(h => `- "${h.text}" (Type: ${h.type})`).join('\n')}
+    LANGUAGE PATTERNS (USE THESE):
+    ${context.maddieDNA.languagePatterns.mustUse.map(p => `- "${p}"`).join('\n')}
+    
+    SCRIPT STRUCTURE RULES:
+    ${context.maddieDNA.structureRules.map(r => `- ${r}`).join('\n')}
+
+    === SELECTED HOOK STRATEGIES FOR THIS SESSION (USE ONE PER VARIATION) ===
+    ${context.hooks.map((h, i) => `
+    HOOK TYPE ${i+1}: ${h.type}
+    Examples:
+    ${h.examples.map(ex => `  - "${ex}"`).join('\n')}
+    `).join('\n')}
     
     COMPETITOR INSIGHTS:
     ${context.insights.map(i => `- ${i.insight}`).join('\n')}
     
-    SIMILAR VIRAL SCRIPTS (FOR STRUCTURE REFERENCE):
+    REFERENCE SCRIPTS:
     ${context.viralScripts.map(s => `- [${s.productName}]: ${s.scriptText.substring(0, 100)}...`).join('\n')}
     `;
 
@@ -328,4 +341,58 @@ export const transcribeUrl = async (url: string): Promise<string> => {
         console.error("URL Transcription Error:", error);
         throw new Error("Failed to analyze URL.");
     }
+};
+
+/**
+ * Analyze Competitor
+ */
+export const analyzeCompetitor = async (handleOrUrl: string): Promise<CompetitorAnalysis> => {
+  try {
+    const ai = getAI();
+    const maddieContext = getMaddiePersonaString();
+    
+    const response = await ai.models.generateContent({
+      model: 'gemini-3-pro-preview',
+      contents: COMPETITOR_ANALYSIS_PROMPT(handleOrUrl, maddieContext),
+      config: {
+        tools: [{ googleSearch: {} }],
+        systemInstruction: SYSTEM_INSTRUCTION,
+        responseMimeType: "application/json",
+        responseSchema: {
+          type: Type.OBJECT,
+          properties: {
+            competitorName: { type: Type.STRING },
+            performanceOverview: { type: Type.STRING },
+            successfulPatterns: {
+              type: Type.ARRAY,
+              items: {
+                type: Type.OBJECT,
+                properties: {
+                  patternName: { type: Type.STRING },
+                  example: { type: Type.STRING },
+                  whyItWorks: { type: Type.STRING }
+                },
+                required: ["patternName", "example", "whyItWorks"]
+              }
+            },
+            opportunities: {
+              type: Type.ARRAY,
+              items: { type: Type.STRING }
+            },
+            differentiationStrategy: { type: Type.STRING },
+            sampleScript: { type: Type.STRING }
+          },
+          required: ["competitorName", "performanceOverview", "successfulPatterns", "opportunities", "differentiationStrategy", "sampleScript"]
+        }
+      }
+    });
+
+    const jsonText = response.text;
+    if (!jsonText) throw new Error("Empty response from competitor analysis");
+
+    return parseAIJSON<CompetitorAnalysis>(jsonText);
+  } catch (error) {
+    console.error("Competitor Analysis Error:", error);
+    throw new Error("Failed to analyze competitor.");
+  }
 };

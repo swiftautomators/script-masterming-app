@@ -1,7 +1,7 @@
 
 import React, { useRef, useState } from 'react';
 import { VideoLength, ProductState } from '../types';
-import { Camera, X, Clock, Ghost, Flame, Upload, Search } from 'lucide-react';
+import { Camera, X, Clock, Ghost, Flame, Upload, Search, Eye, ShieldAlert } from 'lucide-react';
 import { transcribeMedia, transcribeUrl } from '../services/gemini';
 
 interface ScriptFormProps {
@@ -16,6 +16,9 @@ interface ScriptFormProps {
   isViralMode: boolean;
   setIsViralMode: (v: boolean) => void;
   onViralSubmit: (url: string, script: string) => void;
+
+  // Competitor Props
+  onCompetitorAnalyze: (handle: string) => void;
 }
 
 const LENGTH_DESCRIPTIONS: Record<VideoLength, string> = {
@@ -26,6 +29,8 @@ const LENGTH_DESCRIPTIONS: Record<VideoLength, string> = {
   [VideoLength.DeepDive]: "In-depth education"
 };
 
+type FormMode = 'normal' | 'viral' | 'competitor';
+
 export const ScriptForm: React.FC<ScriptFormProps> = ({
   product,
   setProduct,
@@ -35,14 +40,26 @@ export const ScriptForm: React.FC<ScriptFormProps> = ({
   isSubmitting,
   isViralMode,
   setIsViralMode,
-  onViralSubmit
+  onViralSubmit,
+  onCompetitorAnalyze
 }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const viralFileInputRef = useRef<HTMLInputElement>(null);
   
+  const [mode, setMode] = useState<FormMode>(isViralMode ? 'viral' : 'normal');
+
+  // Viral State
   const [viralUrl, setViralUrl] = useState('');
   const [viralScript, setViralScript] = useState('');
   const [isTranscribing, setIsTranscribing] = useState(false);
+
+  // Competitor State
+  const [competitorHandle, setCompetitorHandle] = useState('');
+
+  const handleModeChange = (newMode: FormMode) => {
+    setMode(newMode);
+    setIsViralMode(newMode === 'viral');
+  };
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -103,19 +120,69 @@ export const ScriptForm: React.FC<ScriptFormProps> = ({
   return (
     <div className="max-w-2xl mx-auto space-y-6">
       
-      {/* VIRAL BUTTON - Always visible at top */}
-      <button
-        onClick={() => setIsViralMode(!isViralMode)}
-        className={`w-full py-4 rounded-xl font-black text-xl shadow-xl transform transition-all relative overflow-hidden group flex items-center justify-center gap-2
-            ${isViralMode ? 'bg-red-800 text-white' : 'bg-[#FF0000] text-white animate-pulse hover:scale-[1.02] hover:shadow-red-200 hover:shadow-2xl'}
-        `}
-      >
-         <Flame className={`w-6 h-6 ${!isViralMode && 'animate-bounce'}`} />
-         {isViralMode ? 'CANCEL VIRAL MODE' : '🔥 VIRAL SCRIPT'}
-      </button>
+      {/* MODE SELECTOR */}
+      <div className="flex gap-2 bg-white p-2 rounded-xl shadow-md border border-gray-100">
+         <button 
+            onClick={() => handleModeChange('normal')}
+            className={`flex-1 py-3 rounded-lg font-bold text-sm flex items-center justify-center gap-2 transition-all ${mode === 'normal' ? 'bg-tiktok-black text-white shadow-lg' : 'text-gray-500 hover:bg-gray-50'}`}
+         >
+            Script Generator
+         </button>
+         <button 
+            onClick={() => handleModeChange('viral')}
+            className={`flex-1 py-3 rounded-lg font-bold text-sm flex items-center justify-center gap-2 transition-all ${mode === 'viral' ? 'bg-red-600 text-white shadow-lg' : 'text-gray-500 hover:bg-red-50 hover:text-red-500'}`}
+         >
+            <Flame className="w-4 h-4" /> Viral Re-Purpose
+         </button>
+         <button 
+            onClick={() => handleModeChange('competitor')}
+            className={`flex-1 py-3 rounded-lg font-bold text-sm flex items-center justify-center gap-2 transition-all ${mode === 'competitor' ? 'bg-indigo-600 text-white shadow-lg' : 'text-gray-500 hover:bg-indigo-50 hover:text-indigo-600'}`}
+         >
+            <ShieldAlert className="w-4 h-4" /> Competitor Spy
+         </button>
+      </div>
 
-      {isViralMode ? (
-          /* VIRAL MODE INPUTS */
+      {/* COMPETITOR SPY MODE */}
+      {mode === 'competitor' && (
+        <div className="bg-white rounded-2xl shadow-xl p-6 md:p-8 border-2 border-indigo-100 animate-fade-in">
+           <h3 className="text-2xl font-black text-gray-900 mb-2 flex items-center gap-2">
+              <ShieldAlert className="text-indigo-600" /> Competitor Deep Dive
+           </h3>
+           <p className="text-gray-500 mb-8">Analyze a competitor's handle or video to uncover their secrets and beat them.</p>
+
+           <div className="mb-8">
+              <label className="block text-sm font-bold text-gray-800 mb-2">TikTok Handle or Video URL</label>
+              <div className="flex gap-2">
+                 <div className="relative flex-1">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5" />
+                    <input
+                        type="text"
+                        value={competitorHandle}
+                        onChange={(e) => setCompetitorHandle(e.target.value)}
+                        placeholder="@competitor or https://tiktok.com/video/..."
+                        className="w-full pl-10 pr-5 py-4 bg-white text-black border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all placeholder-gray-400"
+                    />
+                 </div>
+              </div>
+           </div>
+
+           <button
+              onClick={() => onCompetitorAnalyze(competitorHandle)}
+              disabled={isSubmitting || !competitorHandle}
+              className={`w-full py-5 rounded-xl text-white font-bold text-xl shadow-lg transition-all
+                  ${isSubmitting || !competitorHandle
+                      ? 'bg-gray-300 cursor-not-allowed' 
+                      : 'bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 hover:shadow-xl transform hover:scale-[1.01]'
+                  }
+              `}
+           >
+              {isSubmitting ? 'Analyzing Spy Data...' : 'Analyze Competitor'}
+           </button>
+        </div>
+      )}
+
+      {/* VIRAL MODE */}
+      {mode === 'viral' && (
           <div className="bg-white rounded-2xl shadow-xl p-6 md:p-8 border-2 border-red-100 animate-fade-in">
              <h3 className="text-2xl font-black text-gray-900 mb-6 flex items-center gap-2">
                 <Flame className="text-red-500" /> Viral Script Iterator
@@ -130,7 +197,7 @@ export const ScriptForm: React.FC<ScriptFormProps> = ({
                         value={viralUrl}
                         onChange={(e) => setViralUrl(e.target.value)}
                         placeholder="https://www.tiktok.com/@..."
-                        className="flex-1 px-5 py-3 bg-white text-gray-900 border border-gray-300 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-red-500 outline-none transition-all placeholder-gray-400"
+                        className="flex-1 px-5 py-3 bg-white text-black border border-gray-300 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-red-500 outline-none transition-all placeholder-gray-400"
                     />
                     <button 
                         onClick={handleUrlTranscription}
@@ -176,7 +243,7 @@ export const ScriptForm: React.FC<ScriptFormProps> = ({
                     onChange={(e) => setViralScript(e.target.value)}
                     placeholder="Paste the script here or use the tools above to import..."
                     rows={6}
-                    className="w-full px-5 py-3 bg-white text-gray-900 border border-gray-300 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-red-500 outline-none transition-all resize-none placeholder-gray-400"
+                    className="w-full px-5 py-3 bg-white text-black border border-gray-300 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-red-500 outline-none transition-all resize-none placeholder-gray-400"
                 />
              </div>
 
@@ -193,9 +260,11 @@ export const ScriptForm: React.FC<ScriptFormProps> = ({
                 {isSubmitting ? 'Analyzing DNA...' : 'Analyze & Iterate'}
              </button>
           </div>
-      ) : (
-        /* STANDARD INPUT FORM */
-        <div className="bg-white rounded-2xl shadow-xl p-6 md:p-8 border border-gray-100">
+      )}
+
+      {/* STANDARD INPUT FORM */}
+      {mode === 'normal' && (
+        <div className="bg-white rounded-2xl shadow-xl p-6 md:p-8 border border-gray-100 animate-fade-in">
         
         {/* Image Upload */}
         <div className="mb-8">
@@ -242,7 +311,7 @@ export const ScriptForm: React.FC<ScriptFormProps> = ({
             value={product.name}
             onChange={(e) => setProduct({ ...product, name: e.target.value })}
             placeholder="e.g., Galaxy Star Projector"
-            className="w-full px-5 py-3 bg-white text-gray-900 border border-gray-300 rounded-xl focus:ring-2 focus:ring-tiktok-teal focus:border-tiktok-teal outline-none transition-all placeholder-gray-400 shadow-sm"
+            className="w-full px-5 py-3 bg-white text-black border border-gray-300 rounded-xl focus:ring-2 focus:ring-tiktok-teal focus:border-tiktok-teal outline-none transition-all placeholder-gray-400 shadow-sm"
             />
         </div>
 
@@ -254,7 +323,7 @@ export const ScriptForm: React.FC<ScriptFormProps> = ({
             onChange={(e) => setProduct({ ...product, description: e.target.value })}
             placeholder="Paste TikTok Shop product URL or describe your product (e.g., 'wireless bluetooth headphones under $50 for working out')"
             rows={4}
-            className="w-full px-5 py-3 bg-white text-gray-900 border border-gray-300 rounded-xl focus:ring-2 focus:ring-tiktok-teal focus:border-tiktok-teal outline-none transition-all resize-none placeholder-gray-400 shadow-sm"
+            className="w-full px-5 py-3 bg-white text-black border border-gray-300 rounded-xl focus:ring-2 focus:ring-tiktok-teal focus:border-tiktok-teal outline-none transition-all resize-none placeholder-gray-400 shadow-sm"
             />
             <p className="mt-2 text-xs text-gray-500 flex items-center gap-1">
             <span className="bg-yellow-100 text-yellow-800 px-1.5 py-0.5 rounded font-bold text-[10px]">PRO TIP</span> 

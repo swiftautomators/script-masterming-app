@@ -6,15 +6,13 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "preview": "vite preview",
-    "start": "serve dist -l tcp://0.0.0.0:${PORT:-8080} -s"
+    "preview": "vite preview"
   },
   "dependencies": {
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
     "@google/genai": "^1.29.1",
-    "lucide-react": "0.344.0",
-    "serve": "^14.2.4"
+    "lucide-react": "0.344.0"
   },
   "devDependencies": {
     "@types/node": "^22.14.0",
