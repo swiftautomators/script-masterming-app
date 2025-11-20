@@ -4,8 +4,10 @@ import { SYSTEM_INSTRUCTION, RESEARCH_PROMPT_TEMPLATE, DRAFT_PROMPT_TEMPLATE, FI
 import { ResearchResult, ScriptVariation, FinalScript } from "../types";
 import { retrieveContext } from "./knowledgeBase";
 
-// Initialize Gemini Client
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+// Lazy initialization helper to prevent top-level crashes during build/startup
+const getAI = () => {
+  return new GoogleGenAI({ apiKey: process.env.API_KEY });
+};
 
 /**
  * Helper to safely parse JSON from AI response, handling Markdown code blocks and conversational filler
@@ -36,6 +38,7 @@ const parseAIJSON = <T>(text: string): T => {
  */
 export const researchProduct = async (productName: string, productDesc: string, imageBase64: string | null): Promise<ResearchResult> => {
   try {
+    const ai = getAI();
     const parts: any[] = [];
     
     if (imageBase64) {
@@ -90,6 +93,7 @@ export const researchProduct = async (productName: string, productDesc: string, 
  */
 export const generateDrafts = async (productName: string, length: string, researchSummary: string, isFaceless: boolean): Promise<ScriptVariation[]> => {
   try {
+    const ai = getAI();
     // RAG STEP: Retrieve relevant context from knowledge base
     const context = retrieveContext(productName, researchSummary);
     
@@ -170,6 +174,7 @@ export const generateDrafts = async (productName: string, length: string, resear
  */
 export const repurposeViralScript = async (originalScript: string): Promise<{ analysis: string, scripts: ScriptVariation[] }> => {
   try {
+    const ai = getAI();
     const response = await ai.models.generateContent({
       model: 'gemini-3-pro-preview',
       contents: VIRAL_REPURPOSE_PROMPT(originalScript),
@@ -217,6 +222,7 @@ export const repurposeViralScript = async (originalScript: string): Promise<{ an
  */
 export const finalizeScriptData = async (selectedScript: ScriptVariation, productName: string, isFaceless: boolean): Promise<FinalScript> => {
   try {
+    const ai = getAI();
     const response = await ai.models.generateContent({
       model: 'gemini-3-pro-preview',
       contents: FINALIZATION_PROMPT_TEMPLATE(selectedScript.content, productName, isFaceless),
@@ -262,6 +268,7 @@ export const finalizeScriptData = async (selectedScript: ScriptVariation, produc
  */
 export const refineDraft = async (originalScript: string, instructions: string): Promise<string> => {
   try {
+    const ai = getAI();
     const response = await ai.models.generateContent({
       model: 'gemini-3-pro-preview',
       contents: REFINE_DRAFT_PROMPT_TEMPLATE(originalScript, instructions),
@@ -286,6 +293,7 @@ export const refineDraft = async (originalScript: string, instructions: string):
  */
 export const transcribeMedia = async (base64Data: string, mimeType: string): Promise<string> => {
     try {
+        const ai = getAI();
         const response = await ai.models.generateContent({
             model: 'gemini-2.5-flash',
             contents: {
@@ -307,6 +315,7 @@ export const transcribeMedia = async (base64Data: string, mimeType: string): Pro
  */
 export const transcribeUrl = async (url: string): Promise<string> => {
     try {
+        const ai = getAI();
         const response = await ai.models.generateContent({
             model: 'gemini-2.5-flash',
             contents: `Find the transcript or a detailed description of the video content at this URL: ${url}. Return the spoken script or a very close approximation.`,
