@@ -1,6 +1,4 @@
 
-import { VideoLength } from "../types";
-
 // --- DATA TYPES ---
 
 export type ProductCategory = 'fashion' | 'beauty' | 'home' | 'tech' | 'pet' | 'fitness' | 'general';

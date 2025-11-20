@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { FinalScript } from '../types';
-import { Copy, Download, Share2, Sparkles, Mic, Eye, Smartphone, FileText, Hash, Lightbulb } from 'lucide-react';
+import { Copy, Download, Sparkles, Mic, Eye, Smartphone, FileText, Hash, Lightbulb } from 'lucide-react';
 
 interface FinalOutputDisplayProps {
   finalScripts: FinalScript[];

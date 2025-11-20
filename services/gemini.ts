@@ -8,13 +8,21 @@ import { retrieveContext } from "./knowledgeBase";
 const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 
 /**
- * Helper to safely parse JSON from AI response, handling Markdown code blocks
+ * Helper to safely parse JSON from AI response, handling Markdown code blocks and conversational filler
  */
 const parseAIJSON = <T>(text: string): T => {
   try {
     let cleanText = text.trim();
-    // Remove markdown code blocks if present (e.g. ```json ... ```)
-    cleanText = cleanText.replace(/^```(?:json)?\s*/, '').replace(/\s*```$/, '');
+    
+    // Aggressively search for JSON code block
+    const jsonBlockMatch = cleanText.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
+    if (jsonBlockMatch) {
+        cleanText = jsonBlockMatch[1];
+    } else {
+        // Fallback: try to remove simple markdown tokens if regex didn't catch a full block
+        cleanText = cleanText.replace(/^```(?:json)?\s*/, '').replace(/\s*```$/, '');
+    }
+    
     return JSON.parse(cleanText) as T;
   } catch (e) {
     console.error("JSON Parse Error:", e);

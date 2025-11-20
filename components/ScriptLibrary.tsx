@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { SavedScript, LibraryResource } from '../types';
+import { SavedScript } from '../types';
 import { MOCK_SAVED_SCRIPTS, LEARNING_RESOURCES, ANALYTICS_DATA } from '../services/libraryData';
 import { BookOpen, BarChart2, Play, Trash2, Search, Sparkles, TrendingUp, User, Zap } from 'lucide-react';
 

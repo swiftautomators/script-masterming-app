@@ -1,7 +1,7 @@
 
 import React, { useRef, useState } from 'react';
 import { VideoLength, ProductState } from '../types';
-import { Camera, X, Clock, Ghost, Flame, Upload, Mic, Search } from 'lucide-react';
+import { Camera, X, Clock, Ghost, Flame, Upload, Search } from 'lucide-react';
 import { transcribeMedia, transcribeUrl } from '../services/gemini';
 
 interface ScriptFormProps {
