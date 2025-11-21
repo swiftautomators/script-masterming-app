@@ -6,18 +6,10 @@ import { retrieveContext, getMaddiePersonaString } from "./knowledgeBase";
 
 // Lazy initialization helper to prevent top-level crashes during build/startup
 const getAI = () => {
-  const localKey = localStorage.getItem('tiktok_mastermind_api_key');
-  
-  // Safe process check for browser environments
-  let processKey = undefined;
-  if (typeof process !== 'undefined' && process.env) {
-    processKey = process.env.API_KEY;
-  }
-  
-  const apiKey = localKey || processKey;
+  const apiKey = process.env.API_KEY;
 
   if (!apiKey) {
-    throw new Error("API Key is missing. Please ensure you have logged in correctly.");
+    throw new Error("API Key is missing. Please ensure it is configured in the environment.");
   }
   return new GoogleGenAI({ apiKey });
 };
