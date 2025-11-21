@@ -1,6 +1,4 @@
 
-
-
 import { GoogleGenAI, Type } from "@google/genai";
 import { SYSTEM_INSTRUCTION, RESEARCH_PROMPT_TEMPLATE, DRAFT_PROMPT_TEMPLATE, FINALIZATION_PROMPT_TEMPLATE, VIRAL_REPURPOSE_PROMPT, REFINE_DRAFT_PROMPT_TEMPLATE, COMPETITOR_ANALYSIS_PROMPT } from "../constants";
 import { ResearchResult, ScriptVariation, FinalScript, CompetitorAnalysis } from "../types";
@@ -8,7 +6,11 @@ import { retrieveContext, getMaddiePersonaString } from "./knowledgeBase";
 
 // Lazy initialization helper to prevent top-level crashes during build/startup
 const getAI = () => {
-  return new GoogleGenAI({ apiKey: process.env.API_KEY });
+  const apiKey = localStorage.getItem('tiktok_mastermind_api_key') || process.env.API_KEY;
+  if (!apiKey) {
+    throw new Error("API Key is missing. Please ensure you have logged in correctly.");
+  }
+  return new GoogleGenAI({ apiKey });
 };
 
 /**

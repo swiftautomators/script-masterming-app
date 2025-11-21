@@ -37,11 +37,20 @@ const App: React.FC = () => {
   // Viral State
   const [isViralMode, setIsViralMode] = useState(false);
 
-  // Check for existing session
+  // Check for existing session and API key
   useEffect(() => {
     const storedAuth = localStorage.getItem('tiktok_mastermind_auth');
+    const storedApiKey = localStorage.getItem('tiktok_mastermind_api_key');
+    const envKey = typeof process !== 'undefined' && process.env ? process.env.API_KEY : undefined;
+
     if (storedAuth === 'Loki2024_VALID_SESSION') {
-      setIsAuthenticated(true);
+      // Ensure we also have an API key available (stored or env)
+      if ((storedApiKey && storedApiKey.length > 0) || (envKey && envKey.length > 0)) {
+        setIsAuthenticated(true);
+      } else {
+        // Session exists but no API key - require login to prompt for key
+        setIsAuthenticated(false);
+      }
     }
     setIsAuthChecking(false);
   }, []);
@@ -53,6 +62,8 @@ const App: React.FC = () => {
 
   const handleLogout = () => {
     localStorage.removeItem('tiktok_mastermind_auth');
+    // We intentionally DO NOT clear the API key here to "remember device"
+    // localStorage.removeItem('tiktok_mastermind_api_key'); 
     setIsAuthenticated(false);
     resetApp();
   };
@@ -103,7 +114,7 @@ const App: React.FC = () => {
       setStep(AppStep.Selection);
     } catch (e) {
       console.error(e);
-      alert("Something went wrong. Please ensure your API KEY is set in the environment.");
+      alert("Something went wrong with the AI Request. Please check your API Key and try again.");
       setStep(AppStep.Input);
     }
   };
