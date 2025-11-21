@@ -63,14 +63,20 @@ const App: React.FC = () => {
     let msg = "Something went wrong with the AI request.";
     const errStr = e?.toString()?.toLowerCase() || "";
     
-    if (errStr.includes('403') || errStr.includes('401') || errStr.includes('permission') || errStr.includes('key')) {
-         msg = "API Key Invalid or Expired. Please contact administrator.";
-    } else if (errStr.includes('quota') || errStr.includes('429')) {
-         msg = "API Quota Exceeded. Please try again later.";
+    // Detect Auth/Quota errors to reset the key
+    if (errStr.includes('403') || errStr.includes('401') || errStr.includes('permission') || errStr.includes('key') || errStr.includes('quota') || errStr.includes('429')) {
+         msg = "API Key Invalid or Quota Exceeded. Please log in again to update your key.";
+         // Clear key and session
+         localStorage.removeItem('tiktok_mastermind_api_key');
+         localStorage.removeItem('tiktok_mastermind_auth');
+         setIsAuthenticated(false);
+    } else {
+         // For other errors, just alert
+         msg = `Error: ${e.message || "Unknown AI error"}`;
+         setStep(AppStep.Input);
     }
     
-    alert(`${msg}`);
-    setStep(AppStep.Input);
+    alert(msg);
   };
 
   // Logic for Standard Flow
