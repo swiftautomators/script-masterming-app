@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Lock, KeyRound, Sparkles, Key } from 'lucide-react';
 
@@ -16,11 +15,10 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin }) => {
   const handlePasswordSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (password === 'Loki2024!') {
-      // Check if we already have a key saved or available in env
+      // Check if we already have a key saved
       const storedKey = localStorage.getItem('tiktok_mastermind_api_key');
-      const hasEnvKey = typeof process !== 'undefined' && process.env && process.env.API_KEY && process.env.API_KEY.length > 0;
 
-      if (storedKey || hasEnvKey) {
+      if (storedKey) {
         onLogin();
       } else {
         setStep('apikey');

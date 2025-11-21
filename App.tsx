@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { AppStep, VideoLength, ProductState, ScriptVariation, FinalScript, SavedScript, CompetitorAnalysis } from './types';
 import { ScriptForm } from './components/ScriptForm';
@@ -41,11 +40,10 @@ const App: React.FC = () => {
   useEffect(() => {
     const storedAuth = localStorage.getItem('tiktok_mastermind_auth');
     const storedApiKey = localStorage.getItem('tiktok_mastermind_api_key');
-    const envKey = typeof process !== 'undefined' && process.env ? process.env.API_KEY : undefined;
 
     if (storedAuth === 'Loki2024_VALID_SESSION') {
-      // Ensure we also have an API key available (stored or env)
-      if ((storedApiKey && storedApiKey.length > 0) || (envKey && envKey.length > 0)) {
+      // Ensure we also have an API key available (stored)
+      if (storedApiKey && storedApiKey.length > 0) {
         setIsAuthenticated(true);
       } else {
         // Session exists but no API key - require login to prompt for key
