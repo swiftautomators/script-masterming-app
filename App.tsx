@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { AppStep, VideoLength, ProductState, ScriptVariation, FinalScript, SavedScript, CompetitorAnalysis } from './types';
 import { ScriptForm } from './components/ScriptForm';
@@ -66,6 +67,24 @@ const App: React.FC = () => {
     resetApp();
   };
 
+  const handleAIError = (e: any) => {
+    console.error(e);
+    let msg = "Something went wrong with the AI request.";
+    const errStr = e?.toString()?.toLowerCase() || "";
+    
+    if (errStr.includes('403') || errStr.includes('401') || errStr.includes('permission') || errStr.includes('key')) {
+         msg = "API Key Invalid or Expired.";
+         // Force clear key so user can re-enter
+         localStorage.removeItem('tiktok_mastermind_api_key');
+         setIsAuthenticated(false);
+    } else if (errStr.includes('quota') || errStr.includes('429')) {
+         msg = "API Quota Exceeded. Please try again later.";
+    }
+    
+    alert(`${msg} Please check your API Key and try again.`);
+    setStep(AppStep.Input);
+  };
+
   // Logic for Standard Flow
   const handleResearchAndGenerate = async () => {
     setStep(AppStep.Researching);
@@ -111,9 +130,7 @@ const App: React.FC = () => {
       
       setStep(AppStep.Selection);
     } catch (e) {
-      console.error(e);
-      alert("Something went wrong with the AI Request. Please check your API Key and try again.");
-      setStep(AppStep.Input);
+      handleAIError(e);
     }
   };
 
@@ -139,9 +156,7 @@ const App: React.FC = () => {
         setStep(AppStep.Selection);
 
      } catch (e) {
-        console.error(e);
-        alert("Failed to analyze the viral script.");
-        setStep(AppStep.Input);
+        handleAIError(e);
      }
   };
 
@@ -158,9 +173,7 @@ const App: React.FC = () => {
       setCompetitorReport(result);
       setStep(AppStep.CompetitorReport);
     } catch (e) {
-      console.error(e);
-      alert("Failed to analyze competitor. Please check the handle/URL and try again.");
-      setStep(AppStep.Input);
+      handleAIError(e);
     }
   };
 
@@ -190,8 +203,7 @@ const App: React.FC = () => {
          s.id === scriptId ? { ...s, content: refinedContent } : s
        ));
      } catch (e) {
-       console.error("Refinement failed", e);
-       alert("Failed to refine script.");
+       handleAIError(e);
      }
   };
 
@@ -210,9 +222,7 @@ const App: React.FC = () => {
       setFinalScripts(finals);
       setStep(AppStep.Result);
     } catch (e) {
-      console.error(e);
-      alert("Failed to finalize scripts. Try again.");
-      setStep(AppStep.Selection);
+      handleAIError(e);
     }
   };
 
