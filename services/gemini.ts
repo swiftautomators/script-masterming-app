@@ -90,7 +90,16 @@ export const researchProduct = async (productName: string, productDesc: string, 
 
   } catch (error) {
     console.error("Research Error:", error);
-    throw new Error("Failed to research product. " + (error as any)?.message);
+    // Preserve the original error object for proper error handling
+    if (error instanceof Error) {
+      // Add context but preserve original error properties
+      const enrichedError = Object.assign(error, {
+        context: 'product research',
+        originalMessage: error.message
+      });
+      throw enrichedError;
+    }
+    throw error;
   }
 };
 
@@ -183,7 +192,15 @@ export const generateDrafts = async (productName: string, length: string, resear
 
   } catch (error) {
     console.error("Drafting Error:", error);
-    throw new Error("Failed to generate drafts.");
+    // Preserve the original error object for proper error handling
+    if (error instanceof Error) {
+      const enrichedError = Object.assign(error, {
+        context: 'draft generation',
+        originalMessage: error.message
+      });
+      throw enrichedError;
+    }
+    throw error;
   }
 };
 
@@ -231,7 +248,15 @@ export const repurposeViralScript = async (originalScript: string): Promise<{ an
 
   } catch (error) {
     console.error("Viral Analysis Error:", error);
-    throw new Error("Failed to analyze viral script.");
+    // Preserve the original error object for proper error handling
+    if (error instanceof Error) {
+      const enrichedError = Object.assign(error, {
+        context: 'viral script analysis',
+        originalMessage: error.message
+      });
+      throw enrichedError;
+    }
+    throw error;
   }
 };
 
@@ -277,7 +302,15 @@ export const finalizeScriptData = async (selectedScript: ScriptVariation, produc
 
   } catch (error) {
     console.error("Finalization Error:", error);
-    throw new Error("Failed to finalize script.");
+    // Preserve the original error object for proper error handling
+    if (error instanceof Error) {
+      const enrichedError = Object.assign(error, {
+        context: 'script finalization',
+        originalMessage: error.message
+      });
+      throw enrichedError;
+    }
+    throw error;
   }
 };
 
@@ -302,7 +335,15 @@ export const refineDraft = async (originalScript: string, instructions: string):
 
   } catch (error) {
     console.error("Refinement Error:", error);
-    throw new Error("Failed to refine script.");
+    // Preserve the original error object for proper error handling
+    if (error instanceof Error) {
+      const enrichedError = Object.assign(error, {
+        context: 'script refinement',
+        originalMessage: error.message
+      });
+      throw enrichedError;
+    }
+    throw error;
   }
 };
 
@@ -324,7 +365,15 @@ export const transcribeMedia = async (base64Data: string, mimeType: string): Pro
         return response.text || "";
     } catch (error) {
         console.error("Transcription Error:", error);
-        throw new Error("Failed to transcribe media.");
+        // Preserve the original error object for proper error handling
+        if (error instanceof Error) {
+          const enrichedError = Object.assign(error, {
+            context: 'media transcription',
+            originalMessage: error.message
+          });
+          throw enrichedError;
+        }
+        throw error;
     }
 };
 
@@ -344,7 +393,15 @@ export const transcribeUrl = async (url: string): Promise<string> => {
         return response.text || "";
     } catch (error) {
         console.error("URL Transcription Error:", error);
-        throw new Error("Failed to analyze URL.");
+        // Preserve the original error object for proper error handling
+        if (error instanceof Error) {
+          const enrichedError = Object.assign(error, {
+            context: 'URL transcription',
+            originalMessage: error.message
+          });
+          throw enrichedError;
+        }
+        throw error;
     }
 };
 
@@ -398,6 +455,14 @@ export const analyzeCompetitor = async (handleOrUrl: string): Promise<Competitor
     return parseAIJSON<CompetitorAnalysis>(jsonText);
   } catch (error) {
     console.error("Competitor Analysis Error:", error);
-    throw new Error("Failed to analyze competitor.");
+    // Preserve the original error object for proper error handling
+    if (error instanceof Error) {
+      const enrichedError = Object.assign(error, {
+        context: 'competitor analysis',
+        originalMessage: error.message
+      });
+      throw enrichedError;
+    }
+    throw error;
   }
 };

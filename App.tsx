@@ -59,23 +59,47 @@ const App: React.FC = () => {
   };
 
   const handleAIError = (e: any) => {
-    console.error(e);
+    console.error("AI Error Details:", e);
     let msg = "Something went wrong with the AI request.";
+    let shouldClearKey = false;
+
+    // Check for actual authentication/authorization errors
+    // Be specific to avoid false positives
     const errStr = e?.toString()?.toLowerCase() || "";
-    
-    // Detect Auth/Quota errors to reset the key
-    if (errStr.includes('403') || errStr.includes('401') || errStr.includes('permission') || errStr.includes('key') || errStr.includes('quota') || errStr.includes('429')) {
-         msg = "API Key Invalid or Quota Exceeded. Please log in again to update your key.";
-         // Clear key and session
-         localStorage.removeItem('tiktok_mastermind_api_key');
-         localStorage.removeItem('tiktok_mastermind_auth');
-         setIsAuthenticated(false);
+    const errMessage = (e?.message || "").toLowerCase();
+
+    // Only treat as auth error if we have clear indicators:
+    // 1. HTTP 401/403 status codes (check status property first)
+    // 2. Explicit API key error messages from Google
+    // 3. Rate limit errors (429)
+    if (e?.status === 401 || e?.status === 403 || e?.status === 429) {
+      shouldClearKey = true;
+      msg = "API Key Invalid or Quota Exceeded. Please log in again to update your key.";
+    } else if (
+      errMessage.includes('api key not valid') ||
+      errMessage.includes('api_key_invalid') ||
+      errMessage.includes('invalid api key') ||
+      errMessage.includes('authentication failed') ||
+      errMessage.includes('unauthorized') ||
+      errStr.match(/\b(403|401)\b/) || // Match as complete numbers, not substrings
+      errStr.includes('quota exceeded') ||
+      errStr.includes('rate limit')
+    ) {
+      shouldClearKey = true;
+      msg = "API Key Invalid or Quota Exceeded. Please log in again to update your key.";
     } else {
-         // For other errors, just alert
-         msg = `Error: ${e.message || "Unknown AI error"}`;
-         setStep(AppStep.Input);
+      // For other errors, provide helpful message without clearing the key
+      msg = `Error: ${e.message || e.toString() || "Unknown AI error"}`;
+      setStep(AppStep.Input);
     }
-    
+
+    // Only clear key if we're certain it's an auth issue
+    if (shouldClearKey) {
+      localStorage.removeItem('tiktok_mastermind_api_key');
+      localStorage.removeItem('tiktok_mastermind_auth');
+      setIsAuthenticated(false);
+    }
+
     alert(msg);
   };
 
