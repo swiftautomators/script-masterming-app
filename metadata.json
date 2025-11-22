@@ -1,0 +1,8 @@
+{
+  "name": "TikTok Shop Script Mastermind",
+  "description": "AI-powered script generator for high-converting TikTok Shop affiliate videos, featuring market research and viral frameworks.",
+  "requestFramePermissions": [
+    "camera",
+    "microphone"
+  ]
+}
