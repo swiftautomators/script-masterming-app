@@ -8,6 +8,7 @@ import { ScriptLibrary } from './components/ScriptLibrary';
 import { LoginScreen } from './components/LoginScreen';
 import { CompetitorAnalysisDisplay } from './components/CompetitorAnalysisDisplay';
 import { researchProduct, generateDrafts, finalizeScriptData, repurposeViralScript, refineDraft, analyzeCompetitor } from './services/gemini';
+import { generateScriptsViaAgents, finalizeScriptViaAgent } from './services/n8nAgents';
 import { Play, BookOpen, LogOut } from 'lucide-react';
 
 const App: React.FC = () => {
@@ -17,22 +18,22 @@ const App: React.FC = () => {
 
   // App State
   const [step, setStep] = useState<AppStep>(AppStep.Input);
-  const [loadingMessage, setLoadingMessage] = useState<{title: string, sub: string}>({ title: "", sub: "" });
-  
-  const [product, setProduct] = useState<ProductState>({ 
-    name: '', 
-    description: '', 
-    image: null, 
-    isFaceless: false 
+  const [loadingMessage, setLoadingMessage] = useState<{ title: string, sub: string }>({ title: "", sub: "" });
+
+  const [product, setProduct] = useState<ProductState>({
+    name: '',
+    description: '',
+    image: null,
+    isFaceless: false
   });
   const [videoLength, setVideoLength] = useState<VideoLength>(VideoLength.Short);
   const [researchSummary, setResearchSummary] = useState<string>('');
   const [draftScripts, setDraftScripts] = useState<ScriptVariation[]>([]);
   const [finalScripts, setFinalScripts] = useState<FinalScript[]>([]);
-  
+
   // Competitor State
   const [competitorReport, setCompetitorReport] = useState<CompetitorAnalysis | null>(null);
-  
+
   // Viral State
   const [isViralMode, setIsViralMode] = useState(false);
 
@@ -66,39 +67,39 @@ const App: React.FC = () => {
 
   const handleAIError = (e: any) => {
     console.error("AI Error Details:", e);
-    
+
     const errStr = e?.toString()?.toLowerCase() || "";
     const message = e?.message?.toLowerCase() || "";
     let userMsg = "Something went wrong with the AI request.";
-    
+
     // 1. Check for Definitive Authentication Errors
-    const isAuthError = 
-        errStr.includes('401') || // Unauthorized
-        message.includes('api key not valid') ||
-        message.includes('api_key_invalid') ||
-        message.includes('api key is missing');
+    const isAuthError =
+      errStr.includes('401') || // Unauthorized
+      message.includes('api key not valid') ||
+      message.includes('api_key_invalid') ||
+      message.includes('api key is missing');
 
     // 2. Check for Quota/Rate Limit Errors
-    const isQuotaError = 
-        errStr.includes('429') || 
-        errStr.includes('503') || 
-        message.includes('resource_exhausted') || 
-        message.includes('quota');
+    const isQuotaError =
+      errStr.includes('429') ||
+      errStr.includes('503') ||
+      message.includes('resource_exhausted') ||
+      message.includes('quota');
 
     if (isAuthError) {
-         userMsg = "Access Denied: Your API Key appears to be invalid. Please log in again to update it.";
-         localStorage.removeItem('user_gemini_api_key');
-         localStorage.removeItem('user_session_active');
-         setIsAuthenticated(false);
-         alert(userMsg);
+      userMsg = "Access Denied: Your API Key appears to be invalid. Please log in again to update it.";
+      localStorage.removeItem('user_gemini_api_key');
+      localStorage.removeItem('user_session_active');
+      setIsAuthenticated(false);
+      alert(userMsg);
     } else if (isQuotaError) {
-         userMsg = "⚠️ AI Traffic Jam: The service is experiencing high traffic. The app will auto-retry, but if this persists, please wait 1 minute.";
-         // DO NOT reset step. Let user retry from current state.
-         alert(userMsg);
+      userMsg = "⚠️ AI Traffic Jam: The service is experiencing high traffic. The app will auto-retry, but if this persists, please wait 1 minute.";
+      // DO NOT reset step. Let user retry from current state.
+      alert(userMsg);
     } else {
-         userMsg = `Generation Error: ${e.message || "Please try again."}`;
-         // DO NOT reset step.
-         alert(userMsg);
+      userMsg = `Generation Error: ${e.message || "Please try again."}`;
+      // DO NOT reset step.
+      alert(userMsg);
     }
   };
 
@@ -106,20 +107,20 @@ const App: React.FC = () => {
   const handleResearchAndGenerate = async () => {
     setStep(AppStep.Researching);
     setLoadingMessage({
-        title: "🔍 Researching top-performing videos...",
-        sub: "Scanning TikTok Shop for viral hooks and winning angles."
+      title: "🔍 Researching top-performing videos...",
+      sub: "Scanning TikTok Shop for viral hooks and winning angles."
     });
 
     try {
       // Step 1: Research (Gemini Flash + Search)
       const research = await researchProduct(product.name, product.description, product.image);
       setResearchSummary(research.summary);
-      
+
       setLoadingMessage({
         title: "🧠 Analyzing viral patterns...",
-        sub: product.isFaceless 
-            ? "Analyzing top-performing faceless and aesthetic content..." 
-            : "Synthesizing market data to find the perfect sales angle."
+        sub: product.isFaceless
+          ? "Analyzing top-performing faceless and aesthetic content..."
+          : "Synthesizing market data to find the perfect sales angle."
       });
 
       // THROTTLING: Pause here to prevent "Requests Per Minute" limit issues.
@@ -138,48 +139,60 @@ const App: React.FC = () => {
 
       setLoadingMessage({
         title: "✍️ Crafting your conversion-focused scripts...",
-        sub: product.isFaceless 
-            ? "Applying faceless frameworks (ASMR, POV, Aesthetic) to your product." 
-            : "Applying viral frameworks (PAS, BAB) with authentic voice patterns."
+        sub: product.isFaceless
+          ? "Applying faceless frameworks (ASMR, POV, Aesthetic) to your product."
+          : "Applying viral frameworks (PAS, BAB) with authentic voice patterns."
       });
 
-      const drafts = await generateDrafts(product.name, videoLength, research.summary, product.isFaceless);
-      setDraftScripts(drafts);
-      
+      // Call n8n multi-agent system
+      const agentResponse = await generateScriptsViaAgents({
+        productName: product.name,
+        productDescription: product.description, // Assuming description is available in product state or derived
+        videoLength,
+        isFaceless: product.isFaceless
+      });
+
+      if (!agentResponse.success) {
+        throw new Error(agentResponse.error || 'Failed to generate scripts');
+      }
+
+      setResearchSummary(agentResponse.researchSummary);
+      setDraftScripts(agentResponse.scripts);
+
       setStep(AppStep.Selection);
     } catch (e) {
       handleAIError(e);
       // If failed during research/drafting, we might want to go back to input
       if (step === AppStep.Researching || step === AppStep.Drafting) {
-        setStep(AppStep.Input); 
+        setStep(AppStep.Input);
       }
     }
   };
 
   // Logic for Viral Repurpose Flow
   const handleViralAnalysis = async (url: string, script: string) => {
-     setStep(AppStep.Researching);
-     setLoadingMessage({
-        title: "🔥 Deconstructing Viral DNA...",
-        sub: "Analyzing psychological triggers, retention mechanisms, and hook structures."
-     });
+    setStep(AppStep.Researching);
+    setLoadingMessage({
+      title: "🔥 Deconstructing Viral DNA...",
+      sub: "Analyzing psychological triggers, retention mechanisms, and hook structures."
+    });
 
-     try {
-        if (!product.name) {
-            setProduct(prev => ({...prev, name: "Viral Product"}));
-        }
+    try {
+      if (!product.name) {
+        setProduct(prev => ({ ...prev, name: "Viral Product" }));
+      }
 
-        const result = await repurposeViralScript(script);
-        
-        setResearchSummary(result.analysis);
-        setDraftScripts(result.scripts);
-        
-        setStep(AppStep.Selection);
+      const result = await repurposeViralScript(script);
 
-     } catch (e) {
-        handleAIError(e);
-        setStep(AppStep.Input);
-     }
+      setResearchSummary(result.analysis);
+      setDraftScripts(result.scripts);
+
+      setStep(AppStep.Selection);
+
+    } catch (e) {
+      handleAIError(e);
+      setStep(AppStep.Input);
+    }
   };
 
   // Logic for Competitor Analysis
@@ -202,37 +215,37 @@ const App: React.FC = () => {
 
   const handleUseLibraryPattern = (script: SavedScript) => {
     setIsViralMode(true);
-    setProduct(prev => ({...prev, name: script.productName}));
+    setProduct(prev => ({ ...prev, name: script.productName }));
     setStep(AppStep.Input);
   };
 
   const handleAddViralScript = () => {
-      setIsViralMode(true);
-      setStep(AppStep.Input);
+    setIsViralMode(true);
+    setStep(AppStep.Input);
   };
 
   const handleRefineScript = async (scriptId: number, instructions: string) => {
-     const scriptToRefine = draftScripts.find(s => s.id === scriptId);
-     if (!scriptToRefine) return;
+    const scriptToRefine = draftScripts.find(s => s.id === scriptId);
+    if (!scriptToRefine) return;
 
-     const originalContent = scriptToRefine.content;
-     
-     try {
-       const refinedContent = await refineDraft(originalContent, instructions);
-       
-       setDraftScripts(prev => prev.map(s => 
-         s.id === scriptId ? { ...s, content: refinedContent } : s
-       ));
-     } catch (e) {
-       handleAIError(e);
-     }
+    const originalContent = scriptToRefine.content;
+
+    try {
+      const refinedContent = await refineDraft(originalContent, instructions);
+
+      setDraftScripts(prev => prev.map(s =>
+        s.id === scriptId ? { ...s, content: refinedContent } : s
+      ));
+    } catch (e) {
+      handleAIError(e);
+    }
   };
 
   const handleSelectScripts = async (scripts: ScriptVariation[]) => {
     setStep(AppStep.Finalizing);
     setLoadingMessage({
-        title: `Polishing ${scripts.length} Script${scripts.length > 1 ? 's' : ''}...`,
-        sub: `Optimizing ${product.isFaceless ? 'visual transitions and text overlays' : 'visual cues and captions'}.`
+      title: `Polishing ${scripts.length} Script${scripts.length > 1 ? 's' : ''}...`,
+      sub: `Optimizing ${product.isFaceless ? 'visual transitions and text overlays' : 'visual cues and captions'}.`
     });
 
     const finals: FinalScript[] = [];
@@ -240,28 +253,40 @@ const App: React.FC = () => {
 
     // Process sequentially to be polite to API
     for (const script of scripts) {
-       try {
-           // Increased delay to 10s to ensure we stay under strict RPM limits
-           if (finals.length > 0) await new Promise(r => setTimeout(r, 10000));
-           
-           const final = await finalizeScriptData(script, product.name, product.isFaceless);
-           finals.push(final);
-       } catch (e: any) {
-           console.error(`Failed to finalize script ${script.id}`, e);
-           errors.push(`Script ${script.id}: ${e.message}`);
-       }
+      try {
+        // Increased delay to 10s to ensure we stay under strict RPM limits
+        if (finals.length > 0) await new Promise(r => setTimeout(r, 10000));
+
+        const final = await finalizeScriptViaAgent({
+          scriptId: script.id,
+          scriptContent: script.content,
+          productName: product.name,
+          category: 'fashion', // This will be dynamic from agentResponse - wait, needed to store category. For now hardcode or pass through.
+          framework: script.framework,
+          isFaceless: product.isFaceless
+        });
+
+        if (final) {
+          finals.push(final);
+        } else {
+          throw new Error('Failed to finalize script');
+        }
+      } catch (e: any) {
+        console.error(`Failed to finalize script ${script.id}`, e);
+        errors.push(`Script ${script.id}: ${e.message}`);
+      }
     }
 
     if (finals.length > 0) {
-        setFinalScripts(finals);
-        setStep(AppStep.Result);
-        if (errors.length > 0) {
-            alert(`Completed with warnings: ${errors.length} scripts failed to finalize.`);
-        }
+      setFinalScripts(finals);
+      setStep(AppStep.Result);
+      if (errors.length > 0) {
+        alert(`Completed with warnings: ${errors.length} scripts failed to finalize.`);
+      }
     } else {
-        // All failed
-        handleAIError(new Error("Failed to finalize any selected scripts. Please try again."));
-        setStep(AppStep.Selection); // Go back to selection so they can retry
+      // All failed
+      handleAIError(new Error("Failed to finalize any selected scripts. Please try again."));
+      setStep(AppStep.Selection); // Go back to selection so they can retry
     }
   };
 
@@ -293,26 +318,26 @@ const App: React.FC = () => {
             </div>
             <h1 className="font-bold text-xl tracking-tight">Script<span className="text-tiktok-pink">Mastermind</span></h1>
           </div>
-          
+
           <div className="flex items-center gap-3">
-             <button 
-                onClick={() => setStep(AppStep.Library)}
-                className={`text-sm font-bold flex items-center gap-2 px-3 py-2 rounded-lg transition-colors ${step === AppStep.Library ? 'bg-gray-100 text-tiktok-teal' : 'text-gray-600 hover:bg-gray-50'}`}
-             >
-                <BookOpen className="w-4 h-4" /> My Library
-             </button>
-             {step !== AppStep.Input && step !== AppStep.Library && (
-                <button onClick={resetApp} className="text-xs font-semibold text-gray-500 hover:text-tiktok-black px-3 py-1.5 rounded-full hover:bg-gray-100 transition-all border border-gray-200">
+            <button
+              onClick={() => setStep(AppStep.Library)}
+              className={`text-sm font-bold flex items-center gap-2 px-3 py-2 rounded-lg transition-colors ${step === AppStep.Library ? 'bg-gray-100 text-tiktok-teal' : 'text-gray-600 hover:bg-gray-50'}`}
+            >
+              <BookOpen className="w-4 h-4" /> My Library
+            </button>
+            {step !== AppStep.Input && step !== AppStep.Library && (
+              <button onClick={resetApp} className="text-xs font-semibold text-gray-500 hover:text-tiktok-black px-3 py-1.5 rounded-full hover:bg-gray-100 transition-all border border-gray-200">
                 New Project
-                </button>
-             )}
-             <button 
-                onClick={handleLogout}
-                className="text-gray-400 hover:text-red-500 p-2 rounded-full hover:bg-red-50 transition-colors"
-                title="Logout"
-             >
-                <LogOut className="w-4 h-4" />
-             </button>
+              </button>
+            )}
+            <button
+              onClick={handleLogout}
+              className="text-gray-400 hover:text-red-500 p-2 rounded-full hover:bg-red-50 transition-colors"
+              title="Logout"
+            >
+              <LogOut className="w-4 h-4" />
+            </button>
           </div>
         </div>
       </header>
@@ -329,8 +354,8 @@ const App: React.FC = () => {
                 Generate high-converting TikTok Shop scripts in seconds using AI market research.
               </p>
             </div>
-            <ScriptForm 
-              product={product} 
+            <ScriptForm
+              product={product}
               setProduct={setProduct}
               videoLength={videoLength}
               setVideoLength={setVideoLength}
@@ -346,15 +371,15 @@ const App: React.FC = () => {
 
         {/* Loading Steps */}
         {(step === AppStep.Researching || step === AppStep.Drafting || step === AppStep.Finalizing) && (
-          <LoadingState 
-            message={loadingMessage.title} 
+          <LoadingState
+            message={loadingMessage.title}
             subMessage={loadingMessage.sub}
           />
         )}
 
         {/* Step 3: Selection */}
         {step === AppStep.Selection && (
-          <ScriptSelection 
+          <ScriptSelection
             scripts={draftScripts}
             researchSummary={researchSummary}
             onFinalize={handleSelectScripts}
@@ -366,7 +391,7 @@ const App: React.FC = () => {
 
         {/* Step 4: Result */}
         {step === AppStep.Result && finalScripts.length > 0 && (
-          <FinalOutputDisplay 
+          <FinalOutputDisplay
             finalScripts={finalScripts}
             onReset={resetApp}
           />
@@ -374,7 +399,7 @@ const App: React.FC = () => {
 
         {/* Competitor Report Step */}
         {step === AppStep.CompetitorReport && competitorReport && (
-          <CompetitorAnalysisDisplay 
+          <CompetitorAnalysisDisplay
             analysis={competitorReport}
             onBack={resetApp}
           />
@@ -382,10 +407,10 @@ const App: React.FC = () => {
 
         {/* Library Step */}
         {step === AppStep.Library && (
-           <ScriptLibrary 
-              onUsePattern={handleUseLibraryPattern} 
-              onAddViralScript={handleAddViralScript}
-           />
+          <ScriptLibrary
+            onUsePattern={handleUseLibraryPattern}
+            onAddViralScript={handleAddViralScript}
+          />
         )}
       </main>
 
