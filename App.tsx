@@ -9,6 +9,7 @@ import { LoginScreen } from './components/LoginScreen';
 import { CompetitorAnalysisDisplay } from './components/CompetitorAnalysisDisplay';
 import { researchProduct, generateDrafts, finalizeScriptData, repurposeViralScript, refineDraft, analyzeCompetitor } from './services/gemini';
 import { generateScriptsViaAgents, finalizeScriptViaAgent } from './services/n8nAgents';
+import { ErrorDisplay } from './components/ErrorDisplay';
 import { Play, BookOpen, LogOut } from 'lucide-react';
 
 const App: React.FC = () => {
@@ -19,6 +20,7 @@ const App: React.FC = () => {
   // App State
   const [step, setStep] = useState<AppStep>(AppStep.Input);
   const [loadingMessage, setLoadingMessage] = useState<{ title: string, sub: string }>({ title: "", sub: "" });
+  const [error, setError] = useState<string | null>(null);
 
   const [product, setProduct] = useState<ProductState>({
     name: '',
@@ -153,7 +155,20 @@ const App: React.FC = () => {
       });
 
       if (!agentResponse.success) {
-        throw new Error(agentResponse.error || 'Failed to generate scripts');
+        setError(`Script generation failed. Please check:
+        
+      1. n8n workflows are active
+      2. All 5 workflows are running
+      3. Webhook URLs are correct
+      
+      Debug info:
+      ${JSON.stringify(agentResponse.debugInfo, null, 2)}
+      
+      Error: ${agentResponse.error}
+        `);
+        setStep(AppStep.Input); // Reset step to input so they can see the error and retry
+        setLoadingMessage({ title: "", sub: "" }); // Clear loading
+        return;
       }
 
       setResearchSummary(agentResponse.researchSummary);
@@ -343,6 +358,9 @@ const App: React.FC = () => {
       </header>
 
       <main className="py-8 px-4">
+        {/* Error Display */}
+        <ErrorDisplay error={error} onRetry={() => setError(null)} />
+
         {/* Step 1: Input */}
         {step === AppStep.Input && (
           <div className="animate-fade-in">

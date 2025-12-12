@@ -41,6 +41,7 @@ interface AgentScriptsResponse {
     }>;
     scripts: ScriptDraft[];
     error?: string;
+    debugInfo?: any;
 }
 
 interface FinalizeScriptInput {
@@ -72,7 +73,11 @@ interface FinalizedScript {
 export async function generateScriptsViaAgents(
     input: GenerateScriptsInput
 ): Promise<AgentScriptsResponse> {
-    console.log('🎬 Calling TikTok Script Orchestrator...', input);
+    const DEBUG_URL = import.meta.env.VITE_N8N_WEBHOOK_BASE_URL || 'https://n8n.srv1020587.hstgr.cloud';
+    console.log('🎬 Calling TikTok Script Orchestrator...', {
+        url: DEBUG_URL,
+        input: input
+    });
 
     try {
         const response = await fetch(`${N8N_BASE_URL}/webhook/tiktok-script-generate`, {
@@ -83,8 +88,21 @@ export async function generateScriptsViaAgents(
             body: JSON.stringify(input),
         });
 
+        console.log('📡 Response status:', response.status);
+
         if (!response.ok) {
-            throw new Error(`Orchestrator failed: ${response.statusText}`);
+            const errorText = await response.text();
+            console.error('❌ n8n error response:', errorText);
+
+            // Try to parse error as JSON
+            let errorData;
+            try {
+                errorData = JSON.parse(errorText);
+            } catch {
+                errorData = { error: errorText };
+            }
+
+            throw new Error(`n8n workflow failed: ${JSON.stringify(errorData, null, 2)}`);
         }
 
         const data = await response.json();
@@ -105,13 +123,19 @@ export async function generateScriptsViaAgents(
 
         return {
             success: false,
-            category: 'general',
+            category: 'error',
             voiceProfile: 'default',
             researchSummary: 'Error generating research',
             hooks: [],
             scripts: [],
-            error: error instanceof Error ? error.message : 'Unknown error',
-        };
+            // @ts-ignore
+            error: error.message || 'Unknown error',
+            debugInfo: {
+                n8nUrl: DEBUG_URL,
+                timestamp: new Date().toISOString(),
+                input: input
+            }
+        } as any; // Cast to any to bypass strict type check on the added debugInfo for now, or I should update interface
     }
 }
 
