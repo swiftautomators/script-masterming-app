@@ -46,6 +46,24 @@ For detailed workflow setup, see the [n8n documentation](https://docs.n8n.io/).
 
 ---
 
+## 🔥 Viral Tools
+
+New powerful features for deep market analysis and content adaptation:
+
+### 1. Viral Re-Purpose (`src/services/viralTools.ts`)
+- **Analyzes** high-performing videos to extract viral DNA
+- **Identifies** hooks, pacing, and psychological triggers
+- **Generates** 3 unique script variations adapted for your product
+
+### 2. Competitor Spy (`src/services/viralTools.ts`)
+- **Extracts** winning strategies from competitor profiles
+- **Identifies** top posting times and hashtag clusters
+- **Reveals** their most effective hook patterns
+
+See [docs/VIRAL-TOOLS.md](docs/VIRAL-TOOLS.md) for full documentation.
+
+---
+
 ## Run Locally
 
 **Prerequisites:**  Node.js
