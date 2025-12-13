@@ -3,7 +3,9 @@
 // Uses n8n workflows to generate category-specific scripts
 
 const isDev = import.meta.env.DEV;
-const N8N_BASE_URL = import.meta.env.VITE_N8N_WEBHOOK_BASE_URL || (isDev ? '' : 'https://n8n.srv1020587.hstgr.cloud');
+// In development, ALWAYS use relative path to trigger the Vite proxy (bypassing CORS)
+// In production, use the env var or default to the cloud URL
+const N8N_BASE_URL = isDev ? '' : (import.meta.env.VITE_N8N_WEBHOOK_BASE_URL || 'https://n8n.srv1020587.hstgr.cloud');
 
 // ============================================================================
 // WORKFLOW IDS - UPDATED FOR SIMPLIFIED WORKFLOWS
