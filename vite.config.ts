@@ -8,6 +8,13 @@ export default defineConfig(({ mode }) => {
       server: {
         port: 3000,
         host: '0.0.0.0',
+        proxy: {
+          '/webhook': {
+            target: 'https://n8n.srv1020587.hstgr.cloud',
+            changeOrigin: true,
+            secure: false
+          }
+        }
       },
       plugins: [react()],
       define: {
